@@ -85,10 +85,119 @@
             font-size: 0.85rem;
             margin: 10px 0;
         }
+
+
+        :root {
+    --nav-bg: rgba(10, 10, 10, 0.8);
+    --nav-border: rgba(255, 255, 255, 0.1);
+    /* --accent: #00ffcc; */
+    --text: #ffffff;
+}
+
+        .lab-nav {
+    position: fixed;
+    /* flex-shrink: 0; */
+    top: 0;
+    left: 0;
+    width: 97%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px); /* Glassmorphism */
+    border-bottom: 1px solid var(--nav-border);
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1px;
+}
+
+/* Left: Back Link */
+.back-link {
+    display: flex;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.6;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    color: var(--accent);
+}
+
+.back-link .arrow {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Center: Branding */
+.brand-name {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--text);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Right: Creative Status Indicator */
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-text {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.status-pulse {
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+body {
+    padding-top: 60px;
+    margin: 0;
+    background: #000;
+}
     </style>
 </head>
 <body>
-
+<nav class="lab-nav">
+    <div class="nav-left">
+        <a href="../index.html" class="back-link">
+            <span class="arrow">←</span> 
+            <span class="back-text">BACK TO LABS</span>
+        </a>
+    </div>
+    
+    <div class="nav-center">
+        <span class="brand-name">KYURIOUS LABS</span>
+    </div>
+    
+    <div class="nav-right">
+        <div class="status-container">
+            <span class="status-pulse"></span>
+            <span class="status-text">SYSTEM ACTIVE</span>
+        </div>
+    </div>
+</nav>
     <div id="sidebar">
         <h1>Double Pendulum</h1>
         <p>A demonstration of deterministic chaos. Adjust the parameters and click Reset to see how infinitesimally small changes alter the outcome.</p>
