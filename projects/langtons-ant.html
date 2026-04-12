@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Langton's Ant — Universal Trajectory</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #0f0f17;
+            --accent: #facc15;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --nav-bg: rgba(10, 10, 15, 0.95);
+            --nav-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding-top: 60px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            display: flex;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        /* --- NAV BANNER --- */
+                .lab-nav {
+    position: fixed;
+    /* flex-shrink: 0; */
+    top: 0;
+    left: 0;
+    width: 97%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px); /* Glassmorphism */
+    border-bottom: 1px solid var(--nav-border);
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1px;
+}
+
+/* Left: Back Link */
+.back-link {
+    display: flex;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.6;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    color: var(--accent);
+}
+
+.back-link .arrow {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Center: Branding */
+.brand-name {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--text);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Right: Creative Status Indicator */
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-text {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.status-pulse {
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+        .sidebar {
+            width: 360px;
+            background: var(--panel);
+            border-right: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: 10px 0 40px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: radial-gradient(#111 1px, transparent 1px);
+            background-size: 25px 25px;
+            position: relative;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9);
+            max-width: 96%;
+            max-height: 96%;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        h1 { 
+            font-size: 1.35rem; 
+            color: var(--accent); 
+            margin: 0 0 20px 0; 
+            letter-spacing: 1.5px; 
+        }
+
+        h2 { 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            color: var(--muted); 
+            letter-spacing: 2px; 
+            margin-bottom: 10px; 
+        }
+
+        .section { margin-bottom: 28px; }
+
+        .label-group { 
+            display: flex; justify-content: space-between; 
+            font-size: 0.82rem; margin-bottom: 6px; 
+            color: var(--muted); 
+        }
+
+        button {
+            width: 100%;
+            padding: 11px;
+            background: #1e2937;
+            border: 1px solid #334155;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        button:hover { 
+            background: #334155; 
+            border-color: var(--accent); 
+        }
+
+        .preset-btn {
+    transition: all 0.2s;
+}
+.preset-btn.active {
+    background: #334155;
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.3);
+}
+
+        input[type=range] { width: 100%; accent-color: var(--accent); }
+        input[type=text] { 
+            width: 100%; 
+            padding: 10px; 
+            background: #000; 
+            border: 1px solid #334155; 
+            color: var(--accent); 
+            font-family: monospace; 
+            margin-bottom: 8px; 
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.4);
+            padding: 16px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--accent);
+            line-height: 1.6;
+        }
+
+        .guide {
+            font-size: 0.85rem;
+            line-height: 1.65;
+            color: #94a3b8;
+        }
+        .guide b { color: var(--accent); }
+
+        a { color: var(--accent); text-decoration: none; }
+        /* a:hover { text-decoration: underline; } */
+
+
+        .overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(5, 5, 5, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+}
+
+.overlay-content {
+    color: white;
+    font-family: 'Inter', sans-serif;
+}
+
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+    </style>
+</head>
+<body>
+
+<nav class="lab-nav">
+    <div class="nav-left">
+        <a href="../index.html" class="back-link">
+            <span class="arrow">←</span> 
+            <span class="back-text">BACK TO LABS</span>
+        </a>
+    </div>
+    
+    <div class="nav-center">
+        <span class="brand-name">KYURIOUS LABS</span>
+    </div>
+    
+    <div class="nav-right">
+        <div class="status-container">
+            <span class="status-pulse"></span>
+            <span class="status-text">SYSTEM ACTIVE</span>
+        </div>
+    </div>
+</nav>
+
+<div class="sidebar">
+    <h1>Langton's Ant</h1>
+
+    <div class="section" id="phaseSection">
+        <div class="guide">
+            Current Phase: <b id="phaseLabel">Simplicity</b><br>
+            <span id="phaseDesc">The ant is building localized patterns. Chaos approaches.</span>
+        </div>
+    </div>
+
+    <!-- Rule Engine -->
+    <div class="section">
+        <h2>Gen-Rules Engine</h2>
+        <div class="guide" style="margin-bottom:8px;">
+            Define turns: <b>L</b> = Left, <b>R</b> = Right<br>
+            Each letter = new state/color
+        </div>
+        <input type="text" id="ruleInput" value="RL" placeholder="e.g. RRLL">
+        <button id="btnApplyRule">Apply New Rule</button>
+    </div>
+
+    <!-- Presets -->
+        <!-- Presets -->
+    <div class="section">
+        <h2>Presets</h2>
+        <button onclick="applyPreset('RL')" class="preset-btn" data-rule="RL">Classic Ant (RL)</button>
+        <button onclick="applyPreset('RRLL')" class="preset-btn" data-rule="RRLL">Symmetric Lace (RRLL)</button>
+        <button onclick="applyPreset('RLLR')" class="preset-btn" data-rule="RLLR">Symmetric Cross (RLLR)</button>
+        <!-- <button onclick="applyPreset('LLRR')" class="preset-btn" data-rule="LLRR">Chaotic Mover (LLRR)</button> -->
+        <button onclick="applyPreset('LRRRRRLLR')" class="preset-btn" data-rule="LRRRRRLLR">The Worm (LRRRRRLLR)</button>
+                <button onclick="applyPreset('RLLRRL')" class="preset-btn" data-rule="RLLRRL">Who's that Pokemon? (RLLRRL)</button>
+        <!-- <button onclick="applyPreset('RRLLLR')" class="preset-btn" data-rule="RRLLLR">Chaotic Spirals (RRLLLR)</button> -->
+        <button onclick="applyPreset('LLRRRLLR')" class="preset-btn" data-rule="LLRRRLLR">Cushions (LLRRRLLR)</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="section">
+        <button id="btnPlay" style="background: var(--accent); color: #000; font-weight: 700; font-size: 1.05rem; padding: 14px;">
+    ▶ START SIMULATION
+</button>
+        <button id="btnReset">Reset Universe</button>
+
+        <div class="label-group" style="margin-top: 15px;">
+            <span>Simulation Speed</span>
+            <span id="speedVal">100 steps/frame</span>
+        </div>
+        <input type="range" id="speedRange" min="1" max="1000" value="100">
+    </div>
+
+    <!-- Stats -->
+    <div class="section">
+        <div class="stat-box">
+            Steps: <span id="statSteps">0</span><br>
+            Rule: <span id="statRule">RL</span><br>
+            Direction: <span id="statDir">North</span>
+        </div>
+    </div>
+
+    <!-- Implications -->
+    <div class="section">
+        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--muted);">Mathematical Implications</span>
+        <p class="guide" style="font-size: 0.8rem; margin-top: 8px;">
+            This is a <b>2D Turing machine</b>. Simple local rules create complex emergent behavior — from chaos to infinite "highways".
+        </p>
+    </div>
+
+        <!-- New: Why It Matters -->
+    <div class="section">
+        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--muted);">Why Does This Exist?</span>
+        <p class="guide" style="font-size: 0.8rem; margin-top: 8px;">
+            <b>Emergence:</b> Simple local rules create global complexity — a core mystery of nature, intelligence, and the universe.<br><br>
+            
+            <b>Philosophy:</b> It shows how order can arise from chaos without a central designer. Life, consciousness, and societies may work the same way: simple interactions → unpredictable beauty.<br><br>
+            
+            <b>In Nature & Real World:</b><br>
+            • Models ant colony behavior and pheromone trails<br>
+            • Analogous to particle movement in magnetic fields (Lorentz force)<br>
+            • Used in artificial life, cryptography, and image encryption<br>
+            • Demonstrates universal computation (it can simulate any computer algorithm)<br>
+            • Helps study phase transitions and criticality in complex systems
+        </p>
+    </div>
+
+    <div class="section">
+        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--muted);">Further Reading</span><br>
+       → <a href="https://mathworld.wolfram.com/LangtonsAnt.html" target="_blank" style="text-decoration: underline;"> Wolfram MathWorld</a><br>
+        → <a href="https://www.youtube.com/watch?v=NWBToaXK5T0" target="_blank" style="text-decoration: underline;"> Numberphile Video</a>
+    </div>
+</div>
+
+<div class="main">
+    <canvas id="antCanvas"></canvas>
+    <div id="overlay" class="overlay">
+        <div class="overlay-content">
+            <h2 style="margin:0 0 12px 0; color:var(--accent);">LANGTON'S ANT</h2>
+            <p style="margin:0; opacity:0.9;">Simulation starting automatically...</p>
+            <p style="font-size:0.9rem; margin-top:20px; opacity:0.7;">
+                Click <strong>⏸ PAUSE SIMULATION</strong> to pause
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('antCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const gridSize = 240;
+    const cellSize = 3;
+    canvas.width = gridSize * cellSize;
+    canvas.height = gridSize * cellSize;
+
+    let grid = Array.from({ length: gridSize }, () => new Uint8Array(gridSize).fill(0));
+    let ant = { x: Math.floor(gridSize / 2), y: Math.floor(gridSize / 2), dir: 0 };
+    let steps = 0;
+    let running = false;
+    let speed = 100;
+    let currentRules = "RL";
+
+    const directions = ["North", "East", "South", "West"];
+
+    // Beautiful multi-state palette
+    const palette = [
+        '#000000', '#facc15', '#3b82f6', '#ef4444',
+        '#10b981', '#a855f7', '#f97316', '#06b6d4',
+        '#ec4899', '#84cc16', '#6366f1', '#ffffff'
+    ];
+
+    function applyPreset(rule) {
+    document.getElementById('ruleInput').value = rule;
+    currentRules = rule;
+    
+    // Highlight only the matching preset button
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        if (btn.getAttribute('data-rule') === rule) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    reset();
+    updatePhaseVisibility();
+}
+
+// Clear preset highlight when user manually applies a custom rule
+function clearPresetHighlight() {
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+}
+
+   function reset() {
+        grid = Array.from({ length: gridSize }, () => new Uint8Array(gridSize).fill(0));
+        ant = { x: Math.floor(gridSize / 2), y: Math.floor(gridSize / 2), dir: 0 };
+        steps = 0;
+        document.getElementById('statRule').innerText = currentRules;
+        updateUI();
+        drawAll();
+        updatePhaseVisibility();
+    }
+
+    function step() {
+        let state = grid[ant.x][ant.y];
+        let turn = currentRules[state % currentRules.length];
+
+        if (turn === 'R') ant.dir = (ant.dir + 1) % 4;
+        else if (turn === 'L') ant.dir = (ant.dir + 3) % 4;
+        else if (turn === 'U') ant.dir = (ant.dir + 2) % 4;
+
+        // Advance to next state
+        grid[ant.x][ant.y] = (state + 1) % currentRules.length;
+
+        // Move forward
+        if (ant.dir === 0) ant.y--;
+        else if (ant.dir === 1) ant.x++;
+        else if (ant.dir === 2) ant.y++;
+        else if (ant.dir === 3) ant.x--;
+
+        // Toroidal world
+        ant.x = (ant.x + gridSize) % gridSize;
+        ant.y = (ant.y + gridSize) % gridSize;
+
+        steps++;
+    }
+
+    function drawAll() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                if (grid[x][y] > 0) {
+                    ctx.fillStyle = palette[grid[x][y] % palette.length];
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+
+        // Draw Ant (golden glow)
+        ctx.fillStyle = '#facc15';
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 12;
+        ctx.fillRect(ant.x * cellSize, ant.y * cellSize, cellSize, cellSize);
+        ctx.shadowBlur = 0;
+    }
+
+
+
+//     // Draw beautiful pixel text "LANGTON'S ANT" at start
+// function drawTitleText() {
+//     // Simple large pixel letters (centered)
+//     const startX = Math.floor(gridSize / 2) - 45;
+//     const startY = Math.floor(gridSize / 2) - 12;
+
+//     // We'll set some cells to state 1 (will appear in golden color)
+//     const titlePattern = [
+//         // L A N G T O N ' S   A N T
+//         // Row 1
+//         "11100111001110011100111001110",
+//         "10010100101001010010100101001",
+//         "11100111001001011100111001001",
+//         "10010100101001010010100101001",
+//         "10000111001110010000111001110",
+//         // Row 2 (smaller spacing)
+//         "                        ",
+//         // Row 3 - "ANT"
+//         "11100111001110",
+//         "10010100101001",
+//         "11100111001001",
+//         "10000100101001",
+//         "10000111001110"
+//     ];
+
+//     for (let row = 0; row < titlePattern.length; row++) {
+//         const y = startY + row;
+//         if (y < 0 || y >= gridSize) continue;
+        
+//         for (let col = 0; col < titlePattern[row].length; col++) {
+//             const x = startX + col;
+//             if (x < 0 || x >= gridSize) continue;
+            
+//             if (titlePattern[row][col] === '1') {
+//                 grid[x][y] = 1;   // state 1 = visible color
+//             }
+//         }
+//     }
+// }
+
+    function updateUI() {
+        document.getElementById('statSteps').innerText = steps.toLocaleString();
+        document.getElementById('statDir').innerText = directions[ant.dir];
+        document.getElementById('statRule').innerText = currentRules;
+
+        let phaseText, phaseDesc;
+        if (steps < 600) {
+            phaseText = "Simplicity";
+            phaseDesc = "Localized symmetry forming...";
+        } else if (steps < 11000) {
+            phaseText = "Chaos";
+            phaseDesc = "Pseudo-random behavior. Everything is still deterministic.";
+        } else {
+            phaseText = "The Highway";
+            phaseDesc = "Order emerges! The ant builds an infinite diagonal highway.";
+        }
+
+        document.getElementById('phaseLabel').innerText = phaseText;
+        document.getElementById('phaseDesc').innerText = phaseDesc;
+    }
+
+    function loop() {
+        if (running) {
+            for (let i = 0; i < speed; i++) {
+                step();
+            }
+            drawAll();
+            updateUI();
+        }
+        requestAnimationFrame(loop);
+    }
+
+
+    // Function to show/hide phase section based on current rule
+function updatePhaseVisibility() {
+    const phaseSection = document.getElementById('phaseSection');
+    if (phaseSection) {
+        // Only show phase info for Classic Ant (RL)
+        if (currentRules === 'RL') {
+            phaseSection.style.display = 'block';
+        } else {
+            phaseSection.style.display = 'none';
+        }
+    }
+}
+
+
+
+    // Event Listeners
+    document.getElementById('btnPlay').onclick = () => {
+    running = !running;
+    
+    const btn = document.getElementById('btnPlay');
+    
+    if (running) {
+        btn.innerText = "⏸ PAUSE SIMULATION";
+        btn.style.background = "#3b2a5e";
+        btn.style.color = "white";
+    } else {
+        btn.innerText = "▶ START SIMULATION";
+        btn.style.background = "var(--accent)";
+        btn.style.color = "#000";
+    }
+};
+
+
+    document.getElementById('btnReset').onclick = reset;
+
+    document.getElementById('btnApplyRule').onclick = () => {
+    let rule = document.getElementById('ruleInput').value.toUpperCase().replace(/[^RLU]/g, '');
+    if (rule.length > 0) {
+        currentRules = rule;
+        clearPresetHighlight();   // ← This removes highlight from presets
+        reset();
+        updatePhaseVisibility();
+    }
+};
+
+// Clear preset highlight when user edits the rule input manually
+document.getElementById('ruleInput').addEventListener('input', () => {
+    const currentInput = document.getElementById('ruleInput').value.toUpperCase().replace(/[^RLU]/g, '');
+    // Only clear if it doesn't exactly match any preset
+    const isPreset = Array.from(document.querySelectorAll('.preset-btn')).some(btn => 
+        btn.getAttribute('data-rule') === currentInput
+    );
+    if (!isPreset) {
+        clearPresetHighlight();
+    }
+    updatePhaseVisibility();
+});
+
+    document.getElementById('speedRange').oninput = (e) => {
+        speed = parseInt(e.target.value);
+        document.getElementById('speedVal').innerText = `${speed} steps/frame`;
+    };
+
+    // Initialize
+    reset();
+    loop();
+
+    // Auto-start the simulation on load
+running = true;
+document.getElementById('btnPlay').innerText = "⏸ PAUSE SIMULATION";
+document.getElementById('btnPlay').style.background = "#3b2a5e";
+document.getElementById('btnPlay').style.color = "white";
+
+// Hide overlay after 4 seconds (or when user interacts)
+setTimeout(() => {
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.add('hidden');
+}, 4000);
+
+// Click on canvas also hides overlay
+canvas.addEventListener('click', () => {
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.add('hidden');
+});
+</script>
+</body>
+</html>
