@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double Pendulum | Chaos Theory</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --accent: #bb86fc;
+            --accent-hover: #9965f4;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 400px;
+            background-color: var(--surface-color);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        h1, h2 { color: var(--accent); margin-top: 0; }
+        h1 { font-size: 1.5rem; }
+        h2 { font-size: 1.2rem; margin-top: 20px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        p { font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); }
+
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-secondary); }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+        .value-display { float: right; color: var(--accent); font-weight: bold; }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: var(--accent-hover); }
+
+        .math-block {
+            background: #121212;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h1>Double Pendulum</h1>
+        <p>A demonstration of deterministic chaos. Adjust the parameters and click Reset to see how infinitesimally small changes alter the outcome.</p>
+
+        <h2>Controls</h2>
+        <div class="control-group">
+            <label>Gravity <span class="value-display" id="g-val">1.0</span></label>
+            <input type="range" id="g-slider" min="0.1" max="3" step="0.1" value="1.0">
+        </div>
+        <div class="control-group">
+            <label>Mass 1 <span class="value-display" id="m1-val">15</span></label>
+            <input type="range" id="m1-slider" min="1" max="50" step="1" value="15">
+        </div>
+        <div class="control-group">
+            <label>Mass 2 <span class="value-display" id="m2-val">15</span></label>
+            <input type="range" id="m2-slider" min="1" max="50" step="1" value="15">
+        </div>
+        <div class="control-group">
+            <label>Length 1 <span class="value-display" id="l1-val">150</span></label>
+            <input type="range" id="l1-slider" min="50" max="250" step="1" value="150">
+        </div>
+        <div class="control-group">
+            <label>Length 2 <span class="value-display" id="l2-val">150</span></label>
+            <input type="range" id="l2-slider" min="50" max="250" step="1" value="150">
+        </div>
+        <div class="control-group">
+            <label>Starting Angle 1 (rad) <span class="value-display" id="a1-val">1.57</span></label>
+            <input type="range" id="a1-slider" min="-3.14" max="3.14" step="0.01" value="1.57">
+        </div>
+        <div class="control-group">
+            <label>Starting Angle 2 (rad) <span class="value-display" id="a2-val">1.57</span></label>
+            <input type="range" id="a2-slider" min="-3.14" max="3.14" step="0.01" value="1.57">
+        </div>
+        <button id="reset-btn">Reset Simulation</button>
+
+        <h2>The Math</h2>
+        <p>Using Lagrangian mechanics (Energy = Kinetic - Potential), we derive these exact differential equations for the angular accelerations (\(\alpha_1\) and \(\alpha_2\)):</p>
+        <div class="math-block">
+            $${\alpha_1} = \frac{-g(2m_1+m_2)\sin\theta_1 - m_2g\sin(\theta_1-2\theta_2) - 2\sin(\theta_1-\theta_2)m_2({\omega_2}^2 L_2 + {\omega_1}^2 L_1 \cos(\theta_1-\theta_2))}{L_1 (2m_1+m_2-m_2\cos(2\theta_1-2\theta_2))}$$
+        </div>
+        <div class="math-block">
+            $${\alpha_2} = \frac{2\sin(\theta_1-\theta_2)({\omega_1}^2 L_1(m_1+m_2) + g(m_1+m_2)\cos\theta_1 + {\omega_2}^2 L_2 m_2 \cos(\theta_1-\theta_2))}{L_2 (2m_1+m_2-m_2\cos(2\theta_1-2\theta_2))}$$
+        </div>
+
+        <h2>Life & Chaos</h2>
+        <p><strong>The Butterfly Effect:</strong> Change the starting angle by just 0.01 radians. Within seconds, the path is completely unrecognizable from the original. In life, minute shifts in daily habits compound into vastly different outcomes.</p>
+        <p><strong>Order within Chaos:</strong> The path looks erratic, but there are no random variables in the code above. It is 100% deterministic. Situations that appear out of control often have underlying rules we just can't see.</p>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        // Physics State
+        let g, m1, m2, l1, l2, a1, a2;
+        let a1_v = 0; // angular velocity 1
+        let a2_v = 0; // angular velocity 2
+        let path = []; // to store the trail
+
+        // DOM Elements
+        const sliders = {
+            g: document.getElementById('g-slider'),
+            m1: document.getElementById('m1-slider'),
+            m2: document.getElementById('m2-slider'),
+            l1: document.getElementById('l1-slider'),
+            l2: document.getElementById('l2-slider'),
+            a1: document.getElementById('a1-slider'),
+            a2: document.getElementById('a2-slider'),
+        };
+        const vals = {
+            g: document.getElementById('g-val'),
+            m1: document.getElementById('m1-val'),
+            m2: document.getElementById('m2-val'),
+            l1: document.getElementById('l1-val'),
+            l2: document.getElementById('l2-val'),
+            a1: document.getElementById('a1-val'),
+            a2: document.getElementById('a2-val'),
+        };
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function updateValuesFromSliders() {
+            g = parseFloat(sliders.g.value);
+            m1 = parseFloat(sliders.m1.value);
+            m2 = parseFloat(sliders.m2.value);
+            l1 = parseFloat(sliders.l1.value);
+            l2 = parseFloat(sliders.l2.value);
+            
+            // Update UI text
+            vals.g.innerText = g;
+            vals.m1.innerText = m1;
+            vals.m2.innerText = m2;
+            vals.l1.innerText = l1;
+            vals.l2.innerText = l2;
+            vals.a1.innerText = sliders.a1.value;
+            vals.a2.innerText = sliders.a2.value;
+        }
+
+        function resetSim() {
+            updateValuesFromSliders();
+            a1 = parseFloat(sliders.a1.value);
+            a2 = parseFloat(sliders.a2.value);
+            a1_v = 0;
+            a2_v = 0;
+            path = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Event Listeners for controls
+        Object.values(sliders).forEach(slider => {
+            slider.addEventListener('input', updateValuesFromSliders);
+        });
+        document.getElementById('reset-btn').addEventListener('click', resetSim);
+
+        function draw() {
+            // Slight clear for trailing effect
+            ctx.fillStyle = "rgba(18, 18, 18, 0.2)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate accelerations using Lagrangian equations
+            let num1 = -g * (2 * m1 + m2) * Math.sin(a1);
+            let num2 = -m2 * g * Math.sin(a1 - 2 * a2);
+            let num3 = -2 * Math.sin(a1 - a2) * m2 * (a2_v * a2_v * l2 + a1_v * a1_v * l1 * Math.cos(a1 - a2));
+            let den = l1 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+            let a1_a = (num1 + num2 + num3) / den;
+
+            let num4 = 2 * Math.sin(a1 - a2);
+            let num5 = (a1_v * a1_v * l1 * (m1 + m2));
+            let num6 = g * (m1 + m2) * Math.cos(a1);
+            let num7 = a2_v * a2_v * l2 * m2 * Math.cos(a1 - a2);
+            let den2 = l2 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+            let a2_a = (num4 * (num5 + num6 + num7)) / den2;
+
+            // Apply acceleration to velocity, and velocity to position
+            a1_v += a1_a;
+            a2_v += a2_a;
+            a1 += a1_v;
+            a2 += a2_v;
+
+            // Damping (friction) to prevent it from spinning out of control infinitely due to float math limits
+            a1_v *= 0.999;
+            a2_v *= 0.999;
+
+            // Kinematics - find positions
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 3;
+
+            let x1 = cx + l1 * Math.sin(a1);
+            let y1 = cy + l1 * Math.cos(a1);
+
+            let x2 = x1 + l2 * Math.sin(a2);
+            let y2 = y1 + l2 * Math.cos(a2);
+
+            // Store path
+            path.push({x: x2, y: y2});
+            if (path.length > 300) { path.shift(); } // Keep trail length manageable
+
+            // Draw Trail
+            ctx.beginPath();
+            for (let i = 0; i < path.length; i++) {
+                if (i === 0) ctx.moveTo(path[i].x, path[i].y);
+                else ctx.lineTo(path[i].x, path[i].y);
+            }
+            ctx.strokeStyle = "rgba(187, 134, 252, 0.5)"; // Accent color for trail
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Rods
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = "#e0e0e0";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw Pivot
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = "#e0e0e0";
+            ctx.fill();
+
+            // Draw Masses
+            ctx.beginPath();
+            ctx.arc(x1, y1, m1 * 0.8, 0, 2 * Math.PI);
+            ctx.fillStyle = "#bb86fc";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(x2, y2, m2 * 0.8, 0, 2 * Math.PI);
+            ctx.fillStyle = "#bb86fc";
+            ctx.fill();
+
+            requestAnimationFrame(draw);
+        }
+
+        // Initialize
+        resizeCanvas();
+        resetSim();
+        draw();
+    </script>
+</body>
+</html>

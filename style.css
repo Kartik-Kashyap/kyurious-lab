@@ -1,0 +1,379 @@
+:root {
+    --bg-color: #0a0a0a;
+    --card-bg: rgba(20, 20, 30, 0.85); /* slightly transparent for glass effect */
+    --text-main: #f0f0f0;
+    --text-muted: #aaaaaa;
+    --neon-cyan: #00ffcc;
+    --neon-magenta: #ff00ff;
+    --neon-purple: #9d00ff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Enhanced subtle grid + noise */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+}
+
+.noise-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.06;
+    background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+    mix-blend-mode: overlay;
+}
+
+/* Header - more dramatic */
+header {
+    text-align: center;
+    padding: 7rem 2rem 5rem;
+    position: relative;
+    z-index: 10;
+}
+
+header h1 {
+    font-size: 4.2rem;
+    font-weight: 900;
+    letter-spacing: -3px;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, #ffffff, var(--neon-cyan), var(--neon-magenta));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* text-shadow: 
+        0 0 20px var(--neon-cyan),
+        0 0 40px var(--neon-cyan),
+        0 0 60px var(--neon-magenta);
+    animation: title-glow 6s ease-in-out infinite alternate; */
+}
+
+@keyframes title-glow {
+    from { text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan); }
+    to { text-shadow: 0 0 30px var(--neon-cyan), 0 0 60px var(--neon-magenta), 0 0 80px var(--neon-purple); }
+}
+
+header p {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    max-width: 680px;
+    margin: 0 auto;
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Project Grid */
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 2.5rem;
+    padding: 3rem 2rem 6rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+}
+
+/* Futuristic Cards */
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 255, 204, 0.15);
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(45deg, 
+        transparent 30%, 
+        var(--neon-cyan) 50%, 
+        var(--neon-magenta) 70%, 
+        transparent 90%);
+    background-size: 200% 200%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: all 0.5s ease;
+    z-index: -1;
+}
+
+.card:hover::before {
+    opacity: 1;
+    background-position: 200% 200%;
+}
+
+.card:hover {
+    transform: translateY(-12px) scale(1.02);
+    border-color: var(--neon-cyan);
+    box-shadow: 
+        0 20px 40px -10px rgba(0, 255, 204, 0.25),
+        0 0 60px -10px rgba(255, 0, 255, 0.15);
+}
+
+/* Card Image / Thumbnail Area */
+.card-image {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #111;
+}
+
+.card-image img,
+.thumbnail-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card:hover .card-image img,
+.card:hover .thumbnail-wrapper iframe {
+    transform: scale(1.08);
+}
+
+/* Glass border effect on image */
+.card-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Card Content */
+.card-content {
+    padding: 1.75rem;
+    flex-grow: 1;
+    position: relative;
+}
+
+.tag {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    background: rgba(0, 255, 204, 0.1);
+    color: var(--neon-cyan);
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.card:hover .tag {
+    background: rgba(255, 0, 255, 0.15);
+    color: var(--neon-magenta);
+    border-color: var(--neon-magenta);
+}
+
+.card h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    line-height: 1.2;
+}
+
+.card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 4rem 2rem 3rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    z-index: 10;
+}
+
+footer a {
+    color: var(--neon-cyan);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--neon-magenta);
+    text-shadow: 0 0 15px var(--neon-magenta);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    header h1 { font-size: 3.2rem; letter-spacing: -2px; }
+    header { padding: 5rem 1.5rem 3.5rem; }
+    .project-grid { 
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+        gap: 1.8rem; 
+        padding: 2rem 1.5rem; 
+    }
+}
+
+/* Keep your iframe thumbnail styles (improved) */
+.thumbnail-wrapper {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.thumbnail-wrapper iframe {
+    width: 1400px;
+    height: 900px;
+    transform: scale(0.27);
+    transform-origin: top left;
+    pointer-events: none;
+    filter: brightness(1.05) contrast(1.1);
+}
+
+
+/* Enhanced Futuristic Lab Title */
+.lab-title {
+    font-size: 4.8rem;
+    font-weight: 900;
+    letter-spacing: -4px;
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(90deg, #ffffff, var(--neon-cyan), var(--neon-magenta), #ffffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* text-shadow: 
+        0 0 10px var(--neon-cyan),
+        0 0 30px var(--neon-cyan),
+        0 0 60px var(--neon-magenta),
+        0 0 90px var(--neon-purple); */
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    /* cursor: pointer; */
+    padding: 0 20px;
+}
+
+/* Subtle idle pulse animation */
+.lab-title {
+    animation: lab-pulse 8s ease-in-out infinite alternate;
+    transition: letter-spacing 0.3s ease; 
+}
+
+/* @keyframes lab-pulse {
+    from {
+        text-shadow: 
+            0 0 10px var(--neon-cyan),
+            0 0 30px var(--neon-cyan),
+            0 0 60px var(--neon-magenta);
+    }
+    to {
+        text-shadow: 
+            0 0 20px var(--neon-cyan),
+            0 0 50px var(--neon-cyan),
+            0 0 90px var(--neon-magenta),
+            0 0 120px var(--neon-purple);
+    }
+} */
+
+/* Interactive Hover - Glitch + Lab Scan Effect */
+.lab-title:hover {
+    animation: lab-glitch 0.6s linear infinite alternate;
+    /* transform: scale(1.03); */
+    letter-spacing: 4px;
+    /* text-shadow: 
+        0 0 30px var(--neon-cyan),
+        0 0 70px var(--neon-cyan),
+        0 0 110px var(--neon-magenta),
+        0 0 150px var(--neon-purple); */
+}
+
+/* Glitch layers using data-text attribute */
+.lab-title::before,
+.lab-title::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+.lab-title::before {
+    color: var(--neon-cyan);
+    animation: glitch-1 0.8s infinite linear alternate-reverse;
+    clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+    transform: translate(-2px, -2px);
+}
+
+.lab-title::after {
+    color: var(--neon-magenta);
+    animation: glitch-2 0.6s infinite linear alternate-reverse;
+    clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+    transform: translate(2px, 2px);
+}
+
+@keyframes glitch-1 {
+    0% { transform: translate(-3px, -3px); }
+    20% { transform: translate(3px, 3px); }
+    40% { transform: translate(-2px, 2px); }
+    100% { transform: translate(2px, -2px); }
+}
+
+@keyframes glitch-2 {
+    0% { transform: translate(3px, 3px); }
+    30% { transform: translate(-3px, -3px); }
+    70% { transform: translate(2px, 2px); }
+}
+
+/* Subtle scan line on hover (lab scanner feel) */
+.lab-title:hover::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(transparent, rgba(255,255,255,0.9), transparent);
+    animation: scan-move 2s linear ease-in-out infinite;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+@keyframes scan-move {
+    0% { top: -50%; }
+    100% { top: 150%; }
+}

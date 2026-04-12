@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centrifuge: Mathematical Echo Chamber & Polarization Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="echo.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- KaTeX for beautiful LaTeX rendering -->
+<!-- KaTeX CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css" 
+      crossorigin="anonymous">
+
+<!-- KaTeX Core -->
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.js" 
+        crossorigin="anonymous"></script>
+
+<!-- KaTeX Auto-render -->
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/contrib/auto-render.min.js" 
+        crossorigin="anonymous"></script>
+    <style>
+    :root {
+        /* Dark Theme Colors */
+        --primary: #00d4aa;        /* Vibrant teal */
+        --secondary: #ff9f43;      /* Warm orange accent */
+        --bg: #0f0f12;            /* Deep background */
+        --surface: #1a1a20;       /* Cards & panels */
+        --text: #e0e0e0;          /* Main text */
+        --text-secondary: #aaaaaa; /* Secondary text */
+        --border: #2a2a32;        /* Subtle borders */
+        --shadow: rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+    }
+
+    h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        color: var(--primary);
+    }
+
+    .subtitle {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .controls-section {
+        background: var(--surface);
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .controls-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .control-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: var(--text);
+    }
+
+    input[type="range"],
+    select {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        background: #25252b;
+        color: var(--text);
+        cursor: pointer;
+    }
+
+    input[type="range"] {
+        padding: 0;
+        height: 6px;
+        accent-color: var(--primary);
+    }
+
+    .value-display {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    button {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: #0f0f12;
+    }
+
+    .btn-primary:hover {
+        background: #00b38f;
+        box-shadow: 0 0 12px rgba(0, 212, 170, 0.4);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: transparent;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+    }
+
+    .btn-secondary:hover {
+        background: rgba(0, 212, 170, 0.1);
+        color: var(--primary);
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-container {
+        background: var(--surface);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px var(--shadow);
+        border: 1px solid var(--border);
+        position: relative;
+        height: 400px;
+    }
+
+    .chart-title {
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: var(--text);
+        font-size: 16px;
+    }
+
+    canvas {
+        max-height: 330px;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        background: var(--surface);
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 4px solid var(--primary);
+        box-shadow: 0 4px 15px var(--shadow);
+    }
+
+    .metric-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .metric-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: var(--primary);
+    }
+
+    .metric-unit {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-left: 4px;
+    }
+
+    .insights-box {
+        background: rgba(0, 212, 170, 0.08);
+        border-left: 4px solid var(--primary);
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    .insights-title {
+        font-weight: 600;
+        color: var(--primary);
+        margin-bottom: 10px;
+    }
+
+    .insight-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .tab-button {
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+    }
+
+    .tab-button.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .scenario-description {
+        background: rgba(255, 159, 67, 0.1);
+        border-left: 4px solid var(--secondary);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: var(--text-secondary);
+    }
+
+    .simulation-status {
+        font-size: 12px;
+        color: var(--primary);
+        margin-top: 10px;
+        font-weight: 600;
+    }
+
+    /* Extra polish for dark theme */
+    input[type="range"]::-webkit-slider-thumb {
+        background: var(--primary);
+    }
+
+    .math-section {
+    margin-top: 50px;
+}
+
+.math-content .section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.math-content .section:last-child {
+    border-bottom: none;
+}
+
+.math-content ul {
+    color: var(--text-muted);
+}
+
+:root {
+    --nav-bg: rgba(10, 10, 10, 0.8);
+    --nav-border: rgba(255, 255, 255, 0.1);
+    --accent: #00ffcc; /* Cyan neon */
+    --text: #ffffff;
+}
+
+.lab-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px); /* Glassmorphism */
+    border-bottom: 1px solid var(--nav-border);
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1px;
+}
+
+/* Left: Back Link */
+.back-link {
+    display: flex;
+    align-items: center;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.6;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.back-link:hover {
+    opacity: 1;
+    color: var(--accent);
+}
+
+.back-link .arrow {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Center: Branding */
+.brand-name {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--text);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Right: Creative Status Indicator */
+.status-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-text {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.status-pulse {
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+/* Push your project content down so it doesn't hide behind the nav */
+body {
+    padding-top: 60px;
+    margin: 0;
+    background: #000;
+}
+</style>
+</head>
+<body>
+    <nav class="lab-nav">
+    <div class="nav-left">
+        <a href="../index.html" class="back-link">
+            <span class="arrow">←</span> 
+            <span class="back-text">BACK TO LABS</span>
+        </a>
+    </div>
+    
+    <div class="nav-center">
+        <span class="brand-name">KYURIOUS LABS</span>
+    </div>
+    
+    <div class="nav-right">
+        <div class="status-container">
+            <span class="status-pulse"></span>
+            <span class="status-text">SYSTEM ACTIVE</span>
+        </div>
+    </div>
+</nav>
+    <div class="container">
+        <header>
+            <h1>Centrifuge: Echo Chamber & Polarization Simulator</h1>
+            <p class="subtitle">Interactive mathematical demonstration of how algorithmic amplification, filter bubbles, and echo chambers emerge in social networks</p>
+        </header>
+
+        <div class="controls-section">
+            <h2 style="margin-bottom: 20px; font-size: 18px;">Simulation Parameters</h2>
+            
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label for="num-agents">Number of Users: <span id="num-agents-value">100</span></label>
+                    <input type="range" id="num-agents" min="20" max="300" value="100" step="10">
+                </div>
+
+                <div class="control-group">
+                    <label for="confidence-threshold">Confidence Threshold (Tolerance): <span id="confidence-value">0.30</span></label>
+                    <input type="range" id="confidence-threshold" min="0.1" max="0.8" value="0.30" step="0.05">
+                    <div class="value-display">Lower = more polarization | Higher = more consensus</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="algo-strength">Algorithm Amplification: <span id="algo-value">0.30</span></label>
+                    <input type="range" id="algo-strength" min="0" max="1" value="0.30" step="0.1">
+                    <div class="value-display">0 = no amplification | 1 = maximum amplification</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="homophily">Network Homophily (Friend-Similarity): <span id="homophily-value">0.40</span></label>
+                    <input type="range" id="homophily" min="0" max="1" value="0.40" step="0.1">
+                    <div class="value-display">How much users connect with similar others</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="iterations">Simulation Steps: <span id="iterations-value">50</span></label>
+                    <input type="range" id="iterations" min="10" max="200" value="50" step="10">
+                    <div class="value-display">Time periods to simulate</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="scenario">Scenario</label>
+                    <select id="scenario">
+                        <option value="baseline">Baseline (All Mechanisms)</option>
+                        <option value="no-algo">No Algorithm (Cognitive + Social Only)</option>
+                        <option value="algo-only">Algorithm Only (No Social Effects)</option>
+                        <option value="high-polarization">High Polarization (Extreme Settings)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" id="run-simulation">▶ Run Simulation</button>
+                <button class="btn-secondary" id="reset-params">Reset to Defaults</button>
+            </div>
+        </div>
+
+        <div id="simulation-status" class="simulation-status"></div>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="distribution">Opinion Distribution</button>
+            <button class="tab-button" data-tab="metrics">Detailed Metrics</button>
+            <button class="tab-button" data-tab="scenarios">Compare Scenarios</button>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="scenario-description" id="scenario-desc"></div>
+            <div class="content-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Opinion Clustering Over Time</div>
+                    <canvas id="clustering-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Polarization Trend</div>
+                    <canvas id="polarization-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Final Polarization Index</div>
+                    <div><span class="metric-value" id="final-polarization">0.00</span><span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Opinion Clusters (Groups)</div>
+                    <div><span class="metric-value" id="num-clusters">1</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average Network Heterogeneity</div>
+                    <div><span class="metric-value" id="heterogeneity">0.00</span><span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Information Diversity Reduction</div>
+                    <div><span class="metric-value" id="diversity-loss">0.00</span><span class="metric-unit">%</span></div>
+                </div>
+            </div>
+
+            <div class="insights-box">
+                <div class="insights-title">Key Findings</div>
+                <div class="insight-text" id="insights-text">Run a simulation to see insights about polarization dynamics.</div>
+            </div>
+        </div>
+
+        <div id="distribution" class="tab-content">
+            <div class="content-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Initial Opinion Distribution</div>
+                    <canvas id="initial-dist-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Final Opinion Distribution</div>
+                    <canvas id="final-dist-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="metrics" class="tab-content">
+            <div class="content-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Within-Group vs Between-Group Opinion Distance</div>
+                    <canvas id="cohesion-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">Echo Chamber Strength</div>
+                    <canvas id="echo-chamber-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="scenarios" class="tab-content">
+            <div class="chart-container" style="height: 500px;">
+                <div class="chart-title">Comparison: Different Conditions</div>
+                <canvas id="scenario-comparison-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+            <!-- Math & Algorithm Explanation Section -->
+        <!-- <div class="math-section" style="margin-top: 40px;">
+            <button id="toggle-math" class="btn-primary" 
+                    style="width: 100%; padding: 14px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                📐 Behind the Math & Algorithm Used
+                <span id="math-arrow" style="font-size: 18px; transition: transform 0.3s;">▼</span>
+            </button>
+            
+            <div id="math-content" class="math-content" style="display: none; margin-top: 15px;">
+                <div class="controls-section">
+                    <h2 style="margin-bottom: 20px; color: var(--primary);">How the Centrifuge Simulator Works</h2>
+                    
+                    <p style="margin-bottom: 20px; color: var(--text-muted);">
+                        This simulator is a simplified <strong>agent-based opinion dynamics model</strong> inspired by the <strong>Bounded Confidence Model</strong> (Deffuant-Weisbuch / Hegselmann-Krause family) with added <strong>homophily</strong> and <strong>algorithmic amplification</strong>.
+                    </p>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary); margin-bottom: 12px;">1. Core Ideas</h3>
+                        <ul style="padding-left: 20px; line-height: 1.7;">
+                            <li><strong>Bounded Confidence</strong>: People only listen to others whose opinions are close enough to their own (the "Confidence Threshold").</li>
+                            <li><strong>Homophily</strong>: We tend to connect with people who are similar to us.</li>
+                            <li><strong>Algorithmic Amplification</strong>: Social media algorithms push opinions toward extremes.</li>
+                            <li><strong>Echo Chambers</strong> emerge when these three forces combine → opinions cluster into separate groups with little middle ground.</li>
+                        </ul>
+                    </div>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary); margin-bottom: 12px;">2. Key Formulas</h3>
+                        
+                        <p><strong>Opinion Update (Social Influence)</strong></p>
+                        <p style="font-family: monospace; background: #1f1f1f; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                            If |opinion<sub>i</sub> − opinion<sub>j</sub>| &lt; Confidence Threshold:<br>
+                            new_opinion<sub>i</sub> = average of similar neighbors
+                        </p>
+
+                        <p><strong>Algorithmic Push Toward Extremes</strong></p>
+                        <p style="font-family: monospace; background: #1f1f1f; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                            extreme = (opinion &gt; 0.5) ? 1 : 0<br>
+                            new_opinion = opinion + (extreme − opinion) × Algo Strength × 0.2
+                        </p>
+
+                        <p><strong>Network Connection Probability (Homophily)</strong></p>
+                        <p style="font-family: monospace; background: #1f1f1f; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                            connection_prob ≈ exp(−|opinion_diff| / (1 − Homophily))
+                        </p>
+                    </div>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary); margin-bottom: 12px;">3. Metrics Explained</h3>
+                        <ul style="padding-left: 20px; line-height: 1.7;">
+                            <li><strong>Polarization Index</strong>: Measures how spread out opinions are (higher = more divided).</li>
+                            <li><strong>Number of Clusters</strong>: How many distinct opinion groups formed.</li>
+                            <li><strong>Information Diversity</strong>: Based on entropy of the opinion distribution (lower = stronger echo chamber).</li>
+                        </ul>
+                    </div>
+
+                    <div class="insights-box" style="margin-top: 25px;">
+                        <div class="insights-title">Why This Matters</div>
+                        <div class="insight-text">
+                            Even small changes in <strong>Confidence Threshold</strong>, <strong>Homophily</strong>, or <strong>Algorithm Strength</strong> can dramatically shift society from consensus to deep polarization. 
+                            This is why echo chambers feel so sticky online — the math naturally drives fragmentation once a few reinforcing mechanisms are present.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+
+                <!-- Nerdy Math & Algorithm Section -->
+        <div class="math-section" style="margin-top: 50px;">
+            <button id="toggle-math" class="btn-primary" 
+                    style="width: 100%; padding: 16px; font-size: 17px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+                <span>📐</span> Behind the Mathematics & Algorithm
+                <span id="math-arrow" style="font-size: 20px; transition: transform 0.3s;">▼</span>
+            </button>
+            
+            <div id="math-content" class="math-content" style="display: none; margin-top: 20px;">
+                <div class="controls-section">
+                    <h2 style="margin-bottom: 25px; color: var(--primary);">The Math Behind Centrifuge</h2>
+                    
+                    <p style="color: var(--text-muted); margin-bottom: 25px;">
+                        This is a <strong>bounded confidence + homophily + algorithmic bias</strong> agent-based model.
+                    </p>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary);">1. Opinion Update Rule</h3>
+                        <p>For each agent <i>i</i>, we collect opinions from neighbors whose opinions are within the confidence threshold:</p>
+                        
+                        <div class="katex-block">
+                            \[ \text{If } |o_i - o_j| < \tau \quad \Rightarrow \quad o_i \leftarrow \frac{1}{k} \sum o_j \]
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">where \(\tau\) = Confidence Threshold, \(k\) = number of similar neighbors.</p>
+                    </div>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary);">2. Algorithmic Amplification (The Echo Booster)</h3>
+                        <div class="katex-block">
+                            \[ o_i' = o_i + (e - o_i) \cdot \alpha \cdot 0.2 \]
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">
+                            where \( e = 1 \) if \( o_i > 0.5 \), else \( 0 \)<br>
+                            \(\alpha\) = Algorithm Strength (0 = neutral, 1 = maximum polarization push)
+                        </p>
+                    </div>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary);">3. Homophily Network Formation</h3>
+                        <div class="katex-block">
+                            \[ P(\text{connect } i \text{ and } j) \propto \exp\left( -\frac{|o_i - o_j|}{1 - h + \epsilon} \right) \]
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">\(h\) = Homophily parameter (higher = stronger preference for similar opinions)</p>
+                    </div>
+
+                    <div class="section">
+                        <h3 style="color: var(--primary);">4. Polarization & Clustering Metrics</h3>
+                        <ul style="padding-left: 20px; line-height: 1.8; color: var(--text-muted);">
+                            <li><strong>Polarization Index</strong>: Based on standard deviation of opinions (scaled to [0,1])</li>
+                            <li><strong>Clusters</strong>: Number of opinion groups separated by gaps > 0.15</li>
+                            <li><strong>Diversity (Entropy)</strong>: Shannon entropy over 10 opinion bins — lower value = stronger echo chamber</li>
+                        </ul>
+                    </div>
+
+                    <div class="insights-box" style="margin-top: 30px;">
+                        <div class="insights-title">The Emergence Insight</div>
+                        <div class="insight-text">
+                            Even modest values of \(\tau\), \(h\), and \(\alpha\) can drive the system from consensus into deep polarization. 
+                            This is why echo chambers feel "natural" once the reinforcing mechanisms are in place.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Simulator Core Logic
+        class PolarizationSimulator {
+            constructor(params) {
+                this.params = params;
+                this.agents = [];
+                this.history = [];
+                this.initialize();
+            }
+
+            initialize() {
+                this.agents = [];
+                for (let i = 0; i < this.params.numAgents; i++) {
+                    this.agents.push({
+                        opinion: Math.random(),
+                        id: i,
+                        neighbors: [],
+                        history: [Math.random()]
+                    });
+                }
+                this.buildNetwork();
+                this.history = [this.calculateMetrics()];
+            }
+
+            buildNetwork() {
+                for (let agent of this.agents) {
+                    agent.neighbors = [];
+                    for (let other of this.agents) {
+                        if (agent.id !== other.id) {
+                            let opinionDist = Math.abs(agent.opinion - other.opinion);
+                            let connectionProb = this.params.homophily > 0 
+                                ? Math.exp(-opinionDist / (1 - this.params.homophily + 0.1))
+                                : 0.5;
+                            
+                            if (Math.random() < connectionProb * 0.3) {
+                                agent.neighbors.push(other.id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            step() {
+                let newOpinions = [];
+                
+                for (let agent of this.agents) {
+                    let opinionInfluences = [agent.opinion];
+                    
+                    // Social influence from neighbors
+                    if (agent.neighbors.length > 0) {
+                        for (let neighborId of agent.neighbors) {
+                            let neighbor = this.agents[neighborId];
+                            let distance = Math.abs(agent.opinion - neighbor.opinion);
+                            
+                            if (distance < this.params.confidenceThreshold) {
+                                opinionInfluences.push(neighbor.opinion);
+                            }
+                        }
+                    }
+                    
+                    let socialMean = opinionInfluences.reduce((a, b) => a + b) / opinionInfluences.length;
+                    
+                    // Algorithmic amplification: push toward extremes
+                    let newOpinion = socialMean;
+                    if (this.params.algoStrength > 0) {
+                        let extreme = socialMean > 0.5 ? 1 : 0;
+                        newOpinion = socialMean + (extreme - socialMean) * this.params.algoStrength * 0.2;
+                    }
+                    
+                    newOpinion = Math.max(0, Math.min(1, newOpinion));
+                    newOpinions.push(newOpinion);
+                    agent.history.push(newOpinion);
+                }
+                
+                this.agents.forEach((agent, idx) => {
+                    agent.opinion = newOpinions[idx];
+                });
+                
+                this.history.push(this.calculateMetrics());
+            }
+
+            calculateMetrics() {
+                let opinions = this.agents.map(a => a.opinion);
+                
+                // Polarization: bimodality of distribution
+                let mean = opinions.reduce((a, b) => a + b) / opinions.length;
+                let variance = opinions.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / opinions.length;
+                let polarization = Math.sqrt(variance) * 2; // Normalize
+                
+                // Clustering: count distinct groups
+                opinions.sort((a, b) => a - b);
+                let clusters = 1;
+                for (let i = 1; i < opinions.length; i++) {
+                    if (opinions[i] - opinions[i-1] > 0.15) {
+                        clusters++;
+                    }
+                }
+                
+                // Diversity: entropy of distribution
+                let bins = new Array(10).fill(0);
+                opinions.forEach(op => {
+                    let bin = Math.floor(op * 10);
+                    bins[bin]++;
+                });
+                let entropy = -bins.filter(b => b > 0).reduce((sum, b) => {
+                    let p = b / opinions.length;
+                    return sum + p * Math.log2(p);
+                }, 0) / Math.log2(10);
+                
+                return {
+                    polarization: Math.min(1, polarization),
+                    clusters: clusters,
+                    diversity: entropy,
+                    mean: mean,
+                    variance: variance,
+                    opinions: [...opinions]
+                };
+            }
+
+            run(iterations) {
+                for (let i = 0; i < iterations; i++) {
+                    this.step();
+                }
+            }
+
+            getResults() {
+                return {
+                    history: this.history,
+                    finalMetrics: this.history[this.history.length - 1],
+                    agents: this.agents
+                };
+            }
+        }
+
+        // UI Controller
+        class SimulatorUI {
+            constructor() {
+                this.charts = {};
+                this.scenarioResults = {};
+                this.setupEventListeners();
+                this.updateScenarioDescription();
+            }
+
+            setupEventListeners() {
+                document.getElementById('run-simulation').addEventListener('click', () => this.runSimulation());
+                document.getElementById('reset-params').addEventListener('click', () => this.resetParameters());
+                document.getElementById('scenario').addEventListener('change', () => this.updateScenarioDescription());
+                
+                // Update value displays
+                ['num-agents', 'confidence-threshold', 'algo-strength', 'homophily', 'iterations'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', (e) => {
+                        this.updateDisplay(id, e.target.value);
+                    });
+                });
+
+                // Tab switching
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        e.target.classList.add('active');
+                        let tabId = e.target.dataset.tab;
+                        document.getElementById(tabId).classList.add('active');
+                    });
+                });
+            }
+
+            updateDisplay(elementId, value) {
+                if (elementId === 'num-agents') {
+                    document.getElementById('num-agents-value').textContent = value;
+                } else if (elementId === 'confidence-threshold') {
+                    document.getElementById('confidence-value').textContent = parseFloat(value).toFixed(2);
+                } else if (elementId === 'algo-strength') {
+                    document.getElementById('algo-value').textContent = parseFloat(value).toFixed(2);
+                } else if (elementId === 'homophily') {
+                    document.getElementById('homophily-value').textContent = parseFloat(value).toFixed(2);
+                } else if (elementId === 'iterations') {
+                    document.getElementById('iterations-value').textContent = value;
+                }
+            }
+
+            updateScenarioDescription() {
+                const scenario = document.getElementById('scenario').value;
+                const descriptions = {
+                    baseline: 'Shows how cognitive biases (confirmation bias), social networks (homophily), and algorithmic amplification combine to create echo chambers.',
+                    'no-algo': 'Demonstrates that echo chambers emerge from social and cognitive factors alone—even without algorithmic personalization.',
+                    'algo-only': 'Tests algorithmic amplification in isolation, showing the pure effect of recommendation algorithms on polarization.',
+                    'high-polarization': 'Simulates conditions leading to maximum polarization with tight social networks and strong algorithmic amplification.'
+                };
+                document.getElementById('scenario-desc').textContent = descriptions[scenario];
+            }
+
+            resetParameters() {
+                document.getElementById('num-agents').value = 100;
+                document.getElementById('confidence-threshold').value = 0.30;
+                document.getElementById('algo-strength').value = 0.30;
+                document.getElementById('homophily').value = 0.40;
+                document.getElementById('iterations').value = 50;
+                ['num-agents', 'confidence-threshold', 'algo-strength', 'homophily', 'iterations'].forEach(id => {
+                    this.updateDisplay(id, document.getElementById(id).value);
+                });
+            }
+
+            getParameters() {
+                let baseParams = {
+                    numAgents: parseInt(document.getElementById('num-agents').value),
+                    confidenceThreshold: parseFloat(document.getElementById('confidence-threshold').value),
+                    algoStrength: parseFloat(document.getElementById('algo-strength').value),
+                    homophily: parseFloat(document.getElementById('homophily').value)
+                };
+
+                const scenario = document.getElementById('scenario').value;
+                if (scenario === 'no-algo') {
+                    baseParams.algoStrength = 0;
+                } else if (scenario === 'algo-only') {
+                    baseParams.homophily = 0;
+                    baseParams.confidenceThreshold = 0.8;
+                } else if (scenario === 'high-polarization') {
+                    baseParams.confidenceThreshold = 0.15;
+                    baseParams.algoStrength = 0.8;
+                    baseParams.homophily = 0.8;
+                }
+
+                return baseParams;
+            }
+
+            runSimulation() {
+                const status = document.getElementById('simulation-status');
+                status.textContent = '⏳ Running simulation...';
+
+                setTimeout(() => {
+                    const params = this.getParameters();
+                    const iterations = parseInt(document.getElementById('iterations').value);
+                    const scenario = document.getElementById('scenario').value;
+
+                    const sim = new PolarizationSimulator(params);
+                    sim.run(iterations);
+                    const results = sim.getResults();
+
+                    this.scenarioResults[scenario] = results;
+                    this.displayResults(results);
+                    this.compareScenarios();
+
+                    status.textContent = '✓ Simulation complete';
+                    setTimeout(() => { status.textContent = ''; }, 3000);
+                }, 100);
+            }
+
+            displayResults(results) {
+                const finalMetrics = results.finalMetrics;
+
+                // Update metrics
+                document.getElementById('final-polarization').textContent = (finalMetrics.polarization * 100).toFixed(1);
+                document.getElementById('num-clusters').textContent = finalMetrics.clusters;
+                document.getElementById('heterogeneity').textContent = (finalMetrics.diversity * 100).toFixed(1);
+                document.getElementById('diversity-loss').textContent = 
+                    ((1 - finalMetrics.diversity) * 100).toFixed(1);
+
+                // Insights
+                let insightText = '';
+                if (finalMetrics.polarization > 0.6) {
+                    insightText = '🔴 <strong>High Polarization:</strong> The population has split into distinct opposing groups with minimal middle ground. This represents a severely fragmented society where consensus becomes nearly impossible.';
+                } else if (finalMetrics.polarization > 0.4) {
+                    insightText = '🟡 <strong>Moderate Polarization:</strong> Distinct groups have formed, but bridges between groups remain. Policy interventions targeting dialogue could help.';
+                } else {
+                    insightText = '🟢 <strong>Low Polarization:</strong> The population maintains relatively diverse opinions and shared information exposure. Democratic deliberation remains viable.';
+                }
+
+                if (finalMetrics.clusters > 3) {
+                    insightText += ` <strong>${finalMetrics.clusters} distinct opinion clusters detected.</strong> This fragmentation suggests algorithmic or social amplification is effectively separating the population.`;
+                }
+
+                document.getElementById('insights-text').innerHTML = insightText;
+
+                // Charts
+                this.updateClusteringChart(results);
+                this.updatePolarizationChart(results);
+                this.updateDistributionCharts(results);
+                this.updateCohesionChart(results);
+                this.updateEchoChamberChart(results);
+            }
+
+            updateClusteringChart(results) {
+                const labels = results.history.map((_, i) => i);
+                const polarizationData = results.history.map(m => m.polarization * 100);
+                const clusterData = results.history.map(m => m.clusters * 10);
+
+                if (this.charts.clustering) this.charts.clustering.destroy();
+                this.charts.clustering = new Chart(document.getElementById('clustering-chart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Opinion Polarization (%)',
+                                data: polarizationData,
+                                borderColor: '#d32f2f',
+                                backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Number of Groups (×10)',
+                                data: clusterData,
+                                borderColor: '#1f8a70',
+                                borderDash: [5, 5],
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            y: { position: 'left', ticks: { callback: v => v + '%' } },
+                            y1: { position: 'right', ticks: { callback: v => (v / 10).toFixed(0) } }
+                        }
+                    }
+                });
+            }
+
+            updatePolarizationChart(results) {
+                const labels = results.history.map((_, i) => i);
+                const data = results.history.map(m => m.variance);
+
+                if (this.charts.polarization) this.charts.polarization.destroy();
+                this.charts.polarization = new Chart(document.getElementById('polarization-chart'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Opinion Variance (Divergence)',
+                            data: data,
+                            borderColor: '#f5a623',
+                            backgroundColor: 'rgba(245, 166, 35, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { min: 0, max: 0.1 }
+                        }
+                    }
+                });
+            }
+
+            updateDistributionCharts(results) {
+                const firstOpinions = results.agents.map(a => a.history[0]);
+                const finalOpinions = results.agents.map(a => a.history[a.history.length - 1]);
+
+                [
+                    { canvasId: 'initial-dist-chart', data: firstOpinions },
+                    { canvasId: 'final-dist-chart', data: finalOpinions }
+                ].forEach(config => {
+                    let bins = new Array(10).fill(0);
+                    config.data.forEach(op => {
+                        let bin = Math.floor(op * 10);
+                        bins[Math.min(bin, 9)]++;
+                    });
+
+                    if (this.charts[config.canvasId]) this.charts[config.canvasId].destroy();
+                    this.charts[config.canvasId] = new Chart(document.getElementById(config.canvasId), {
+                        type: 'bar',
+                        data: {
+                            labels: Array.from({length: 10}, (_, i) => `${(i/10).toFixed(1)}`),
+                            datasets: [{
+                                label: 'Number of Users',
+                                data: bins,
+                                backgroundColor: config.canvasId === 'initial-dist-chart' ? '#90caf9' : '#ef9a9a'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                });
+            }
+
+            updateCohesionChart(results) {
+                // Calculate within vs between group distances
+                const opinions = results.finalMetrics.opinions;
+                const mean = opinions.reduce((a, b) => a + b) / opinions.length;
+                
+                let withinDist = 0, count1 = 0;
+                let betweenDist = 0, count2 = 0;
+                
+                for (let i = 0; i < opinions.length; i++) {
+                    for (let j = i + 1; j < opinions.length; j++) {
+                        let dist = Math.abs(opinions[i] - opinions[j]);
+                        if ((opinions[i] < mean && opinions[j] < mean) || (opinions[i] >= mean && opinions[j] >= mean)) {
+                            withinDist += dist;
+                            count1++;
+                        } else {
+                            betweenDist += dist;
+                            count2++;
+                        }
+                    }
+                }
+
+                if (this.charts.cohesion) this.charts.cohesion.destroy();
+                this.charts.cohesion = new Chart(document.getElementById('cohesion-chart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Within-Group Distance', 'Between-Group Distance'],
+                        datasets: [{
+                            label: 'Average Distance',
+                            data: [withinDist / count1, betweenDist / count2],
+                            backgroundColor: ['#a5d6a7', '#ef9a9a']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            updateEchoChamberChart(results) {
+                const opinions = results.finalMetrics.opinions;
+                const diversity = results.finalMetrics.diversity;
+                const echoStrength = 1 - diversity;
+
+                if (this.charts.echoChamber) this.charts.echoChamber.destroy();
+                this.charts.echoChamber = new Chart(document.getElementById('echo-chamber-chart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Information Diversity', 'Echo Chamber Effect'],
+                        datasets: [{
+                            data: [diversity * 100, echoStrength * 100],
+                            backgroundColor: ['#66bb6a', '#ef5350']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            compareScenarios() {
+                if (Object.keys(this.scenarioResults).length < 2) return;
+
+                const scenarios = ['baseline', 'no-algo', 'algo-only', 'high-polarization'];
+                const availableScenarios = scenarios.filter(s => this.scenarioResults[s]);
+                const polarizations = availableScenarios.map(s => 
+                    (this.scenarioResults[s].finalMetrics.polarization * 100).toFixed(1)
+                );
+                const clusters = availableScenarios.map(s => 
+                    this.scenarioResults[s].finalMetrics.clusters
+                );
+
+                if (this.charts.scenarioComparison) this.charts.scenarioComparison.destroy();
+                this.charts.scenarioComparison = new Chart(document.getElementById('scenario-comparison-chart'), {
+                    type: 'bar',
+                    data: {
+                        labels: availableScenarios.map(s => s.replace('-', ' ').toUpperCase()),
+                        datasets: [
+                            {
+                                label: 'Final Polarization (%)',
+                                data: polarizations,
+                                backgroundColor: '#ef5350',
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Number of Opinion Groups',
+                                data: clusters,
+                                backgroundColor: '#66bb6a',
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: {
+                            y: { position: 'left' },
+                            y1: { position: 'right' }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            new SimulatorUI();
+        });
+
+
+
+//         // Toggle Math Section
+// const toggleMathBtn = document.getElementById('toggle-math');
+// const mathContent = document.getElementById('math-content');
+// const mathArrow = document.getElementById('math-arrow');
+
+// toggleMathBtn.addEventListener('click', () => {
+//     if (mathContent.style.display === 'none') {
+//         mathContent.style.display = 'block';
+//         mathArrow.style.transform = 'rotate(180deg)';
+//     } else {
+//         mathContent.style.display = 'none';
+//         mathArrow.style.transform = 'rotate(0deg)';
+//     }
+// });
+
+// Toggle for Math Section
+document.getElementById('toggle-math').addEventListener('click', () => {
+    const content = document.getElementById('math-content');
+    const arrow = document.getElementById('math-arrow');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
+});
+
+// // Auto-render all KaTeX after page loads and when math section opens
+// function renderMath() {
+//     renderMathInElement(document.body, {
+//         delimiters: [
+//             {left: "$$", right: "$$", display: true},
+//             {left: "$", right: "$", display: false},
+//             {left: "\\[", right: "\\]", display: true},
+//             {left: "\\(", right: "\\)", display: false}
+//         ],
+//         throwOnError: false
+//     });
+// }
+
+// // Run once on load and again when math content is shown
+// window.addEventListener('load', renderMath);
+
+// // Re-render when math section is opened (in case of dynamic content)
+// document.getElementById('toggle-math').addEventListener('click', () => {
+//     setTimeout(renderMath, 100);
+// });
+
+// Robust KaTeX rendering
+function renderMath() {
+    if (typeof renderMathInElement === "undefined") {
+        console.warn("KaTeX auto-render not loaded yet. Retrying in 100ms...");
+        setTimeout(renderMath, 100);
+        return;
+    }
+
+    try {
+        renderMathInElement(document.body, {
+            delimiters: [
+                { left: "$$",  right: "$$",  display: true },
+                { left: "$",   right: "$",   display: false },
+                { left: "\\[", right: "\\]", display: true },
+                { left: "\\(", right: "\\)", display: false }
+            ],
+            throwOnError: false,
+            errorColor: "#ff5555",
+            macros: {}   // You can add custom macros later if needed
+        });
+        
+        console.log("✅ KaTeX math rendered successfully");
+    } catch (err) {
+        console.error("❌ KaTeX rendering failed:", err);
+    }
+}
+
+// Wait for KaTeX scripts to fully load
+window.addEventListener("load", () => {
+    // Multiple attempts with increasing delay
+    setTimeout(renderMath, 100);
+    setTimeout(renderMath, 400);
+    setTimeout(renderMath, 800);
+});
+
+// Also re-render when user opens the math section
+const toggleMathBtn = document.getElementById("toggle-math");
+if (toggleMathBtn) {
+    toggleMathBtn.addEventListener("click", () => {
+        // Give time for the content to become visible
+        setTimeout(renderMath, 200);
+    });
+}
+
+    </script>
+</body>
+</html>
