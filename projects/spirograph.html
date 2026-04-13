@@ -298,6 +298,8 @@ body {
             <button id="pauseBtn">⏸ PAUSE</button>
             <button id="clearBtn">CLEAR CANVAS</button>
             <button id="randomBtn" class="preset">RANDOM HARMONOGRAPH</button>
+            <button id="savePresetBtn" class="preset">> SAVE PRESET <</button>
+            <button id="loadPresetBtn" class="preset">> LOAD PRESET <</button>
             
             <div class="control-group" style="margin-top:25px;">
                 <label>PRESETS</label>
@@ -553,6 +555,93 @@ body {
         }
         
         window.onload = init;
+
+
+        // ====================== SAVE & LOAD PRESETS ======================
+
+// Save Preset
+document.getElementById('savePresetBtn').addEventListener('click', () => {
+    const presetName = prompt("Enter a name for your preset:", "My Beautiful Pattern");
+    
+    if (!presetName || presetName.trim() === "") {
+        alert("Preset name cannot be empty!");
+        return;
+    }
+
+    const preset = {
+        name: presetName.trim(),
+        freqX: freqX,
+        freqY: freqY,
+        phase: phase,
+        damping: damping,
+        speed: speed,
+        thickness: thickness,
+        hue: hue,
+        timestamp: new Date().toISOString()
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(preset, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", presetName.trim().replace(/[^a-z0-9]/gi, '_') + ".json");
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    document.body.removeChild(downloadAnchor);
+
+    alert(`Preset "${presetName}" saved successfully!`);
+});
+
+// Load Preset
+document.getElementById('loadPresetBtn').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const preset = JSON.parse(event.target.result);
+
+                // Apply the preset
+                freqX = preset.freqX || freqX;
+                freqY = preset.freqY || freqY;
+                phase = preset.phase || phase;
+                damping = preset.damping || damping;
+                speed = preset.speed || speed;
+                thickness = preset.thickness || thickness;
+                hue = preset.hue || hue;
+
+                // Update sliders
+                document.getElementById('freqX').value = freqX;
+                document.getElementById('freqY').value = freqY;
+                document.getElementById('phase').value = phase;
+                document.getElementById('damping').value = damping;
+                document.getElementById('speed').value = speed;
+                document.getElementById('thickness').value = thickness;
+                document.getElementById('hue').value = hue;
+
+                updateValues();
+
+                clearCanvas();
+                setTimeout(() => {
+                    startDrawing();
+                }, 100);
+
+                alert(`Preset "${preset.name || 'Unnamed'}" loaded successfully!`);
+
+            } catch (err) {
+                alert("Error: Invalid preset file!");
+            }
+        };
+        reader.readAsText(file);
+    };
+    
+    input.click();
+});
     </script>
 </body>
 </html>

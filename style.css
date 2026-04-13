@@ -78,10 +78,17 @@ header h1 {
 header p {
     color: var(--text-muted);
     font-size: 1.25rem;
-    max-width: 680px;
+    max-width: 780px;
     margin: 0 auto;
     font-weight: 300;
     font-style: italic;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+header p:hover {
+    /* color: #fff; */
+    /* text-shadow: 0 0 10px #aaaaaa; */
+    /* animation: pulse duration timing-function delay iteration-count direction fill-mode; */
 }
 
 /* Project Grid */
