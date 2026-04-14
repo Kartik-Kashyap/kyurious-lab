@@ -7,7 +7,7 @@
     <style>
         :root {
             --text-color: #00ffcc;
-            --stroke-color: #ffffff;
+            --stroke-color: #00ffcc;
         }
 
         body {
@@ -82,7 +82,7 @@
         .value {
             float: right;
             font-family: monospace;
-            color: #0ff;
+            color: #00ffcc;
         }
         button {
             background: #000;
@@ -259,6 +259,19 @@ body {
             <h1>HARMONOGRAPH SIMULATOR</h1>
         <p style="margin:5px 0 0 0; opacity:0.8;">Pendulum Math • Lissajous • Spirograph</p>
         </header>
+
+        <div class="control-group">
+    <label>Background Style</label>
+    <select id="backgroundSelect" style="width:100%; padding:8px; background:#111; color:var(--accent); border:2px solid var(--accent); font-family:inherit;">
+        <option value="grid">Glowing Particles (Default)</option>
+        <option value="black">Deep Black</option>
+        <option value="stars">Starfield</option>
+        <!-- <option value="stars">Starfield</option>
+        <option value="vignette">Soft Vignette</option>
+        <option value="darkgrid">Dark Cyber Grid</option> -->
+    </select>
+</div>
+        
             <div class="control-group">
                 <label>Frequency X <span class="value" id="val-fx">3.00</span></label>
                 <input type="range" id="freqX" min="1" max="20" step="0.01" value="3">
@@ -277,6 +290,9 @@ body {
             <div class="control-group">
                 <label>Damping <span class="value" id="val-damp">0.995</span></label>
                 <input type="range" id="damping" min="0.90" max="0.999" step="0.001" value="0.995">
+                <label>
+        <input type="checkbox" id="traceMode"> Trace Mode (No Damping)
+    </label>
             </div>
             
             <div class="control-group">
@@ -300,6 +316,11 @@ body {
             <button id="randomBtn" class="preset">RANDOM HARMONOGRAPH</button>
             <button id="savePresetBtn" class="preset">> SAVE PRESET <</button>
             <button id="loadPresetBtn" class="preset">> LOAD PRESET <</button>
+            <button id="shareBtn" class="preset" style="background:#330033; border-color:#ff99ff; color: white;">🔗 SHARE LINK 🔗</button>
+            <br>
+            <button id="soundBtn" class="preset" style="background:#003366; border-color:#66aaff; color: white;">♪ SOUND ON ♪<br> <i>(read the sound guide from below)</i></button>
+            <button id="recordBtn" class="preset" style="background:#330000; border-color:#ff4444; color:#ffffff;">START RECORDING</button>
+<button id="stopRecordBtn" class="preset" style="background:#003300; border-color:#44ff44; color: white; display:none;">⏹ STOP & DOWNLOAD VIDEO</button>
             
             <div class="control-group" style="margin-top:25px;">
                 <label>PRESETS</label>
@@ -309,9 +330,24 @@ body {
                 <button onclick="loadPreset(4)" class="preset">Celtic Knot</button>
                 <button onclick="loadPreset(5)" class="preset">Hypnotic Spiral</button>
             </div>
+
+            <div class="info" style="margin-top:20px; border-top:1px solid #033; padding-top:15px; color: white;">
+    <strong>Sound Guide:</strong><br>
+    • <strong>Speed</strong>: Controls how fast the pattern draws and affects sound pitch/speed<br>
+    • <strong>Damping</strong>: Makes the pattern fade naturally (sound volume also fades)<br>
+    • <strong>Trace Mode</strong>: Turns off fading → endless drawing + constant sound volume<br>
+    • <strong>Frequencies</strong>: Change the base tone of the two oscillators<br>
+    • <strong>Phase</strong>: Adds stereo movement / detune to the sound<br><br>
+    Turn sound ON and record video to get audio + visuals together!
+</div>
+<br>
+<!-- <br> -->
+<hr>
+<!-- <br> -->
+<br>
             
-            <div class="info">
-                <strong>How it works:</strong><br>
+            <div class="info" style="color: white;">
+                <strong>How Spirograph works:</strong><br>
                 This simulates two pendulums (X and Y) connected to a pen.<br>
                 The path is drawn using parametric equations:<br>
                 <code>x = sin(freqX·t + phase)</code><br>
@@ -321,6 +357,9 @@ body {
         </div>
         <div id="canvas-container">
             <canvas id="canvas" width="800" height="800"></canvas>
+            <!-- <div id="fps" style="position:absolute; top:12px; left:12px; color: var(--accent); font-family:monospace; font-size:13px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px; z-index:10;">
+    FPS: -- 
+</div> -->
         </div>
     </div>
 
@@ -367,7 +406,11 @@ body {
         
         function getPoint(time) {
             // Harmonic motion with damping
-            const damp = Math.pow(damping, time / 10);
+            // const damp = Math.pow(damping, time / 10);
+            let damp = 1.0;
+    if (!document.getElementById('traceMode').checked) {
+        damp = Math.pow(damping, time / 10);
+    }
             
             const x = Math.sin(freqX * time + phase) * amplitude * damp;
             const y = Math.sin(freqY * time) * amplitude * damp;
@@ -379,6 +422,8 @@ body {
         }
         
         function draw() {
+            // updateFPS();
+            updateSound();
             if (!isDrawing) return;
             
             drawBackground();
@@ -423,6 +468,13 @@ body {
             
             isDrawing = true;
             document.getElementById('startBtn').textContent = 'DRAWING...';
+
+            // Resume sound
+    if (isSoundOn && gainNode) {
+        const currentVolume = document.getElementById('traceMode').checked ? 1.0 : Math.pow(damping, t / 25);
+        gainNode.gain.setTargetAtTime(currentVolume * 0.38, audioContext.currentTime, 0.1);
+    }
+
             draw();
         }
         
@@ -430,6 +482,11 @@ body {
             isDrawing = false;
             cancelAnimationFrame(animationFrame);
             document.getElementById('startBtn').textContent = '▶ RESUME';
+
+            // Pause sound
+    if (isSoundOn && gainNode) {
+        gainNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.05); // fade out
+    }
         }
         
         function clearCanvas() {
@@ -541,20 +598,82 @@ body {
             document.getElementById('randomBtn').addEventListener('click', randomHarmonograph);
         }
         
-        // Initialize
-        function init() {
-            resizeCanvas();
-            clearCanvas();
-            updateValues();
-            setupListeners();
+//         // Initialize
+//         function init() {
+//             resizeCanvas();
+//             clearCanvas();
+//             updateValues();
+//             setupListeners();
+
+//                     // Load from URL parameters
+// const urlParams = new URLSearchParams(window.location.search);
+// if (urlParams.has('fx')) {
+//     document.getElementById('freqX').value = parseFloat(urlParams.get('fx'));
+//     document.getElementById('freqY').value = parseFloat(urlParams.get('fy'));
+//     document.getElementById('phase').value = parseFloat(urlParams.get('ph'));
+//     document.getElementById('damping').value = parseFloat(urlParams.get('damp'));
+//     document.getElementById('speed').value = parseInt(urlParams.get('spd'));
+//     document.getElementById('thickness').value = parseFloat(urlParams.get('thick'));
+//     document.getElementById('hue').value = parseInt(urlParams.get('hue'));
+    
+//     if (urlParams.get('trace') === '1') {
+//         document.getElementById('traceMode').checked = true;
+//     }
+    
+//     updateValues();
+// }
             
-            // Start with a beautiful pattern automatically
-            setTimeout(() => {
-                loadPreset(1);
-            }, 300);
+//             // Start with a beautiful pattern automatically
+//             setTimeout(() => {
+//                 loadPreset(3);
+//             }, 300);
+//         }
+        
+//         window.onload = init;
+
+
+// Initialize
+function init() {
+    resizeCanvas();
+    clearCanvas();
+    updateValues();
+    setupListeners();
+    
+    // Load from URL parameters - FIXED VERSION
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('fx')) {
+        // Set slider values
+        document.getElementById('freqX').value = parseFloat(urlParams.get('fx')) || 3;
+        document.getElementById('freqY').value = parseFloat(urlParams.get('fy')) || 5;
+        document.getElementById('phase').value = parseFloat(urlParams.get('ph')) || 0;
+        document.getElementById('damping').value = parseFloat(urlParams.get('damp')) || 0.995;
+        document.getElementById('speed').value = parseInt(urlParams.get('spd')) || 2;
+        document.getElementById('thickness').value = parseFloat(urlParams.get('thick')) || 1.5;
+        document.getElementById('hue').value = parseInt(urlParams.get('hue')) || 200;
+        
+        if (urlParams.get('trace') === '1') {
+            document.getElementById('traceMode').checked = true;
         }
         
-        window.onload = init;
+        // IMPORTANT: Update global variables + UI values
+        updateValues();
+        
+        // Force redraw with new settings
+        clearCanvas();
+    }
+
+        createParticles();   // Initialize particles once
+    
+    // Start with beautiful default pattern
+    setTimeout(() => {
+        if (!urlParams.has('fx')) {   // Only load preset if no URL params
+            loadPreset(3);
+        }
+        startDrawing();
+    }, 300);
+}
+
+window.onload = init;
 
 
         // ====================== SAVE & LOAD PRESETS ======================
@@ -642,6 +761,410 @@ document.getElementById('loadPresetBtn').addEventListener('click', () => {
     
     input.click();
 });
+
+document.getElementById('traceMode').addEventListener('change', () => {
+    if (isDrawing) {
+        // Optional: clear and restart for clean look
+        clearCanvas();
+        setTimeout(startDrawing, 50);
+    }
+});
+
+
+// ====================== IMPROVED RECORDING (Better Quality + Audio) ======================
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let audioDestination = null;   // For capturing sound
+
+function startRecording() {
+    if (isRecording) return;
+    
+    recordedChunks = [];
+    initAudio(); // make sure audio context exists
+
+    // Create audio destination for recording
+    if (!audioDestination) {
+        audioDestination = audioContext.createMediaStreamDestination();
+        gainNode.connect(audioDestination);   // Connect your sound to recording
+    }
+
+    const videoStream = canvas.captureStream(120); // ← Higher FPS (was 30)
+    
+    // Combine video + audio tracks
+    const combinedStream = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks()
+    ]);
+
+    mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: 'video/webm;codecs=vp9,opus',   // Best quality + audio
+        videoBitsPerSecond: 15000000,   // 8 Mbps → much better quality
+        audioBitsPerSecond: 128000
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `harmonograph_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        isRecording = false;
+        document.getElementById('recordBtn').textContent = 'START RECORDING';
+        document.getElementById('recordBtn').style.background = '#330000';
+        document.getElementById('stopRecordBtn').style.display = 'none';
+    };
+
+    mediaRecorder.start(100); // collect data every 100ms
+    isRecording = true;
+    
+    document.getElementById('recordBtn').textContent = '🔴 RECORDING (with sound)';
+    document.getElementById('recordBtn').style.background = '#660000';
+    document.getElementById('stopRecordBtn').style.display = 'block';
+    
+    alert("Recording started!\nLet the pattern draw for 10–40 seconds then click STOP.\nThe video will include the generative audio.");
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+    }
+}
+
+// Event listeners
+document.getElementById('recordBtn').addEventListener('click', startRecording);
+document.getElementById('stopRecordBtn').addEventListener('click', stopRecording);
+
+
+// ====================== SONIFICATION ======================
+let audioContext;
+let oscX, oscY, gainNode, panner;
+let isSoundOn = false;
+
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        gainNode = audioContext.createGain();
+        panner = audioContext.createStereoPanner();
+        
+        gainNode.connect(panner);
+        panner.connect(audioContext.destination);
+    }
+}
+
+function toggleSound() {
+    initAudio();
+    isSoundOn = !isSoundOn;
+    
+    const btn = document.getElementById('soundBtn');
+    
+    if (isSoundOn) {
+        // Oscillator for X
+        oscX = audioContext.createOscillator();
+        oscX.type = 'sine';
+        oscX.frequency.value = freqX * 60;   // base pitch scaled by freq
+        
+        // Oscillator for Y
+        oscY = audioContext.createOscillator();
+        oscY.type = 'sine';
+        oscY.frequency.value = freqY * 55;
+        
+        // Light detune based on phase
+        oscY.detune.value = phase * 30;
+        
+        oscX.connect(gainNode);
+        oscY.connect(gainNode);
+        
+        oscX.start();
+        oscY.start();
+        
+        btn.textContent = '♪ SOUND OFF';
+        btn.style.background = '#006600';
+    } else {
+        if (oscX) oscX.stop();
+        if (oscY) oscY.stop();
+        btn.textContent = '♪ SOUND ON';
+        btn.style.background = '#003366';
+    }
+}
+
+// Update sound live when parameters change
+// function updateSound() {
+//     if (!isSoundOn || !oscX || !oscY) return;
+    
+//     oscX.frequency.setTargetAtTime(freqX * 60, audioContext.currentTime, 0.05);
+//     oscY.frequency.setTargetAtTime(freqY * 55, audioContext.currentTime, 0.05);
+//     oscY.detune.setTargetAtTime(phase * 30, audioContext.currentTime, 0.1);
+    
+//     // Damping affects volume
+//     const currentDamp = document.getElementById('traceMode').checked ? 1 : Math.pow(damping, t / 20);
+//     gainNode.gain.setTargetAtTime(currentDamp * 0.4, audioContext.currentTime, 0.1);
+// }
+
+function updateSound() {
+    if (!isSoundOn || !oscX || !oscY) return;
+    
+    // Frequency based on freqX / freqY
+    oscX.frequency.setTargetAtTime(freqX * 65, audioContext.currentTime, 0.03);
+    oscY.frequency.setTargetAtTime(freqY * 58, audioContext.currentTime, 0.03);
+    
+    // Phase affects detune (stereo feel)
+    oscY.detune.setTargetAtTime(phase * 35, audioContext.currentTime, 0.08);
+    
+    // IMPORTANT: Speed now affects pitch/modulation speed
+    const speedFactor = Math.max(0.3, speed / 5);   // speed 1-10 → 0.3x to 2x
+    oscX.frequency.setTargetAtTime(freqX * 65 * speedFactor, audioContext.currentTime, 0.05);
+    oscY.frequency.setTargetAtTime(freqY * 58 * speedFactor, audioContext.currentTime, 0.05);
+    
+    // Volume based on damping + trace mode
+    let currentVolume = document.getElementById('traceMode').checked ? 1.0 : Math.pow(damping, t / 25);
+    gainNode.gain.setTargetAtTime(currentVolume * 0.38, audioContext.currentTime, 0.1);
+}
+
+// Call updateSound() inside your draw() loop (after updateFPS())
+// updateSound();
+
+document.getElementById('soundBtn').addEventListener('click', toggleSound);
+
+
+// Share button to copy current settings as a URL
+document.getElementById('shareBtn').addEventListener('click', () => {
+    const params = new URLSearchParams({
+        fx: freqX.toFixed(2),
+        fy: freqY.toFixed(2),
+        ph: phase.toFixed(2),
+        damp: damping.toFixed(3),
+        spd: speed,
+        thick: thickness.toFixed(1),
+        hue: Math.round(hue),
+        trace: document.getElementById('traceMode').checked ? '1' : '0'
+    });
+    
+    const shareUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('Shareable link copied to clipboard!\n\nAnyone opening this link will see the exact same settings.');
+    });
+});
+
+
+// Real-time FPS
+// let fps = 0, frameCount = 0, lastTime = performance.now();
+// const fpsElement = document.getElementById('fps');
+
+// function updateFPS() {
+//     frameCount++;
+//     const now = performance.now();
+//     if (now - lastTime >= 1000) {
+//         fps = frameCount;
+//         frameCount = 0;
+//         lastTime = now;
+//         fpsElement.textContent = `FPS: ${fps}`;
+//     }
+//     requestAnimationFrame(updateFPS);
+// }
+// updateFPS();
+
+// Background handling
+const bgSelect = document.getElementById('backgroundSelect');
+
+// function drawBackground() {
+//     const bg = bgSelect.value;
+    
+//     if (bg === "black") {
+//         ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+//         ctx.fillRect(0, 0, width, height);
+        
+//     } else if (bg === "grid") {
+//         ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+//         ctx.fillRect(0, 0, width, height);
+//         ctx.strokeStyle = 'rgba(0, 255, 100, 0.08)';
+//         ctx.lineWidth = 1;
+//         for (let x = 0; x < width; x += 40) {
+//             ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+//         }
+//         for (let y = 0; y < height; y += 40) {
+//             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+//         }
+        
+//     } else if (bg === "stars") {
+//         ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+//         ctx.fillRect(0, 0, width, height);
+//         ctx.fillStyle = '#ffffff';
+//         for (let i = 0; i < 180; i++) {
+//             const x = (i * 73) % width;
+//             const y = (i * 37) % height;
+//             const size = (i % 3) + 0.8;
+//             ctx.fillRect(x, y, size, size);
+//         }
+        
+//     } else if (bg === "vignette") {
+//         ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+//         ctx.fillRect(0, 0, width, height);
+//         const grad = ctx.createRadialGradient(centerX, centerY, Math.min(width,height)*0.4, 
+//                                              centerX, centerY, Math.max(width,height)*0.8);
+//         grad.addColorStop(0, 'rgba(10,10,10,0)');
+//         grad.addColorStop(1, 'rgba(0,0,0,0.9)');
+//         ctx.fillStyle = grad;
+//         ctx.fillRect(0, 0, width, height);
+        
+//     } else if (bg === "darkgrid") {
+//         ctx.fillStyle = '#050505';
+//         ctx.fillRect(0, 0, width, height);
+//         ctx.strokeStyle = 'rgba(0, 255, 200, 0.06)';
+//         ctx.lineWidth = 1.5;
+//         for (let x = 20; x < width; x += 50) {
+//             ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+//         }
+//         for (let y = 20; y < height; y += 50) {
+//             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+//         }
+//     }
+// }
+
+
+// Moving Cyber Grid + Glowing Particles Background
+let gridOffset = 0;
+let particles = [];
+
+// function createParticles() {
+//     particles = [];
+//     for (let i = 0; i < 80; i++) {
+//         particles.push({
+//             x: Math.random() * width,
+//             y: Math.random() * height,
+//             size: Math.random() * 2.5 + 0.8,
+//             speed: Math.random() * 0.4 + 0.1,
+//             opacity: Math.random() * 0.6 + 0.3
+//         });
+//     }
+// }
+
+function createParticles() {
+    particles = [];
+    for (let i = 0; i < 95; i++) {        // Increased count a bit
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,    // Start particles all over
+            size: Math.random() * 2.4 + 0.9,
+            speed: Math.random() * 0.7 + 0.25,
+            opacity: Math.random() * 0.75 + 0.4
+        });
+    }
+}
+
+function drawBackground() {
+    const bg = bgSelect.value;
+    if (bg === "black") {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        ctx.fillRect(0, 0, width, height);
+        } else if (bg === "stars") {
+        // Deep space base with slow trail
+        ctx.fillStyle = 'rgba(2, 2, 8, 0.18)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Moving stars with different layers (parallax feel)
+        ctx.fillStyle = '#ffffff';
+        
+        for (let i = 0; i < 220; i++) {
+            const speed = (i % 5) * 0.12 + 0.08;     // different speeds
+            const x = ((i * 67) + t * speed) % (width + 50) - 25;
+            const y = ((i * 41) + t * speed * 0.6) % (height + 30);
+            
+            const size = (i % 4) * 0.6 + 1.1;
+            const opacity = 0.6 + Math.sin(t * 0.8 + i) * 0.4;   // gentle twinkling
+            
+            ctx.globalAlpha = opacity;
+            ctx.fillRect(x, y, size, size);
+            
+            // Add very faint glow to brighter stars
+            if (size > 2.2) {
+                ctx.globalAlpha = opacity * 0.25;
+                ctx.fillRect(x-1, y-1, size+2, size+2);
+            }
+        }
+        
+        ctx.globalAlpha = 1.0;
+
+        // Very subtle nebula glow in center
+        const nebula = ctx.createRadialGradient(centerX, centerY, 80, centerX, centerY, 420);
+        nebula.addColorStop(0, 'rgba(80, 100, 255, 0.04)');
+        nebula.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = nebula;
+        ctx.fillRect(0, 0, width, height);
+    }
+    else if (bg === "grid") {
+    // Dark base with slight trail
+    ctx.fillStyle = 'rgba(3, 3, 8, 0.13)';
+    ctx.fillRect(0, 0, width, height);
+
+    gridOffset += 0.35;   // Controls movement speed
+
+    // Moving glowing cyber grid
+    ctx.strokeStyle = 'rgba(0, 255, 180, 0.09)';
+    ctx.lineWidth = 1.2;
+
+    // // Vertical lines (moving slowly)
+    // for (let x = -50; x < width + 50; x += 45) {
+    //     const offsetX = (x + gridOffset * 0.8) % 55;
+    //     ctx.beginPath();
+    //     ctx.moveTo(offsetX, 0);
+    //     ctx.lineTo(offsetX, height);
+    //     ctx.stroke();
+    // }
+
+    // // Horizontal lines (moving in opposite direction)
+    // for (let y = -50; y < height + 50; y += 45) {
+    //     const offsetY = (y - gridOffset * 0.6) % 55;
+    //     ctx.beginPath();
+    //     ctx.moveTo(0, offsetY);
+    //     ctx.lineTo(width, offsetY);
+    //     ctx.stroke();
+    // }
+
+    // Subtle glowing particles (fading in and out)
+    ctx.fillStyle = '#00ffcc';
+    for (let p of particles) {
+        p.y += p.speed;
+        p.opacity -= 0.003;   // fade out slowly
+
+        if (p.opacity <= 0 || p.y > height) {
+            p.y = -5;
+            p.x = Math.random() * width;
+            p.opacity = Math.random() * 0.7 + 0.4;
+        }
+
+        ctx.globalAlpha = p.opacity;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Very faint center glow
+    const grad = ctx.createRadialGradient(centerX, centerY, 100, centerX, centerY, 500);
+    grad.addColorStop(0, 'rgba(0, 255, 200, 0.03)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+}
+}
+
+// Live update when background changes
+bgSelect.addEventListener('change', () => {
+    if (isDrawing) {
+        // Force redraw background on next frame
+    }
+});
+
     </script>
 </body>
 </html>
