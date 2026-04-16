@@ -70,7 +70,7 @@
       font-weight: 800;
       font-size: 1rem;
       letter-spacing: 2px;
-      color: var(--accent);
+      color: #fff;
       text-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
     }
 
@@ -108,21 +108,58 @@
       padding: 20px;
     }
 
-    h1 {
+    /* h1 {
       text-align: center;
       font-size: 2.2rem;
       margin-bottom: 10px;
       background: linear-gradient(90deg, #00ffcc, #00ccff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-    }
+      font-size: clamp(1.2rem, 3vw, 1.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: #fff;
+    } */
 
-    .subtitle {
+    /* HEADER */
+.hero-header {
+    position: fixed;
+    top: 72px; left: 20px;
+    z-index: 100;
+    pointer-events: none;
+}
+.hero-header .realm-tag {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent);
+    opacity: 0.8;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.hero-header h1 {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: #fff;
+}
+.hero-header p {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    max-width: 240px;
+}
+
+    /* .subtitle {
       text-align: center;
       color: rgba(255,255,255,0.6);
       margin-bottom: 30px;
       font-size: 1.1rem;
-    }
+    } */
 
     /* Controls */
     .controls {
@@ -256,8 +293,14 @@
   </nav>
 
   <div class="container">
-    <h1>Sorting Auditoria</h1>
-    <p class="subtitle">Watch + Listen as chaos turns into harmony</p>
+    <!-- <h1>Sorting Auditoria</h1> -->
+    <!-- <p class="subtitle">Watch + Listen as chaos turns into harmony</p> -->
+
+    <div class="hero-header">
+    <div class="realm-tag">⬡ DSA fun</div>
+    <h1>Sorting<br>Auditoria</h1>
+    <p>Watch + Listen as chaos turns into harmony</p>
+</div>
 
     <div class="controls">
       <select id="algorithm">

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>N-Body Gravity Sandbox | KYURIOUS LABS</title>
+    <style>
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.8);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #00ffcc;
+            --text: #ffffff;
+        }
+
+        /* === PROVIDED NAV STYLES (unchanged) === */
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 97%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 1px;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+        .back-link:hover {
+            opacity: 1;
+            color: var(--text);
+        }
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* === ADDITIONAL STYLES FOR FULL EXPERIENCE === */
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+        }
+        body {
+            padding-top: 60px;
+        }
+
+        /* Header - left aligned, top-left below nav */
+        .sandbox-header {
+            position: absolute;
+            top: 78px;
+            left: 32px;
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent);
+            z-index: 10000;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* Three.js container - full screen below nav */
+        #three-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            z-index: 1;
+        }
+
+        /* Controls panel - glassmorphic, mobile friendly */
+        .controls-panel {
+            position: absolute;
+            top: 78px;
+            right: 20px;
+            width: 280px;
+            background: rgba(15, 15, 25, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            color: white;
+            font-size: 0.9rem;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .controls-panel h2 {
+            margin: 0 0 16px 0;
+            font-size: 1.1rem;
+            color: var(--accent);
+            text-align: center;
+            text-shadow: 0 0 10px var(--accent);
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            opacity: 0.9;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .value {
+            font-family: monospace;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        button {
+            background: rgba(0, 255, 204, 0.15);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        .btn-small {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .toggle input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 20px;
+            height: 20px;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 32px;
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10000;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .controls-panel {
+                width: 92%;
+                right: 4%;
+                top: 90px;
+            }
+            .sandbox-header {
+                top: 72px;
+                left: 20px;
+                font-size: 1.4rem;
+            }
+            .status-bar {
+                bottom: 12px;
+                left: 16px;
+                right: 16px;
+                justify-content: center;
+            }
+        }
+
+        /* Canvas cursor hint */
+        canvas {
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <!-- === PROVIDED NAV (exactly as requested) === -->
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span> 
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+        
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+        
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text">SYSTEM ACTIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header - left aligned below nav as requested -->
+    <div class="sandbox-header">
+        N-BODY GRAVITY SANDBOX
+    </div>
+
+    <!-- Three.js container -->
+    <div id="three-container"></div>
+
+    <!-- Controls panel - creative + full parameters -->
+    <div class="controls-panel">
+        <h2>🌌 N-BODY CONTROLS</h2>
+
+        <!-- Physics parameters -->
+        <div class="control-group">
+            <label>GRAVITY STRENGTH <span id="g-value" class="value">1.00</span></label>
+            <input type="range" id="g-slider" min="0.1" max="8" step="0.1" value="1">
+        </div>
+
+        <div class="control-group">
+            <label>SIMULATION SPEED <span id="speed-value" class="value">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0.2" max="4" step="0.1" value="1">
+        </div>
+
+        <div class="control-group">
+            <label>SOFTENING (collision avoidance) <span id="soft-value" class="value">0.4</span></label>
+            <input type="range" id="soft-slider" min="0.01" max="2" step="0.01" value="0.4">
+        </div>
+
+        <!-- Spawn settings -->
+        <div class="control-group">
+            <label>NEW BODY MASS <span id="mass-value" class="value">8</span></label>
+            <input type="range" id="mass-slider" min="1" max="120" step="1" value="8">
+            <div style="font-size:0.75rem; opacity:0.7; margin-top:4px;">
+                1 = tiny asteroid • 30+ = glowing star
+            </div>
+        </div>
+
+        <div class="toggle">
+            <input type="checkbox" id="trails-toggle" checked>
+            <label for="trails-toggle">Show orbital trails</label>
+        </div>
+
+        <div class="toggle">
+            <input type="checkbox" id="merge-toggle" checked>
+            <label for="merge-toggle">Merge on collision</label>
+        </div>
+
+        <div class="toggle">
+            <input type="checkbox" id="spawn-mode" checked>
+            <label for="spawn-mode">🪐 Spawn Mode (drag = velocity)</label>
+        </div>
+
+        <!-- Action buttons -->
+        <button onclick="togglePause()">⏸️ PAUSE / PLAY</button>
+        <button onclick="clearAllBodies()">🧹 CLEAR UNIVERSE</button>
+        <button onclick="addRandomCluster(25)" class="btn-small">✨ RANDOM CLUSTER</button>
+        <button onclick="loadSolarSystem()" class="btn-small">☀️ STABLE SOLAR SYSTEM</button>
+        <button onclick="loadBinarySystem()" class="btn-small">⚖️ BINARY STARS</button>
+        <button onclick="explodeAll()" class="btn-small">💥 EXPLODE ALL</button>
+
+        <!-- Info -->
+        <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; display: flex; justify-content: space-between;">
+            <div>BODIES: <span id="body-count" style="color:var(--accent); font-family:monospace;">0</span></div>
+            <div>FRAME: <span id="fps" style="color:var(--accent); font-family:monospace;">60</span></div>
+            <div id="mode-text" style="color:#00ffcc;">SPAWN MODE ACTIVE</div>
+        </div>
+    </div>
+
+    <!-- Bottom status bar -->
+    <div class="status-bar">
+        <span>CLICK + DRAG on canvas to create bodies</span>
+        <span style="flex:1"></span>
+        <span id="instructions" style="opacity:0.7;">Orbit camera with drag • Scroll to zoom</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script>
+        // ====================== CORE THREE.JS SETUP ======================
+        let scene, camera, renderer, raycaster
+        let bodies = []
+        let isPaused = false
+        let G = 1.0
+        let SIM_SPEED = 1.0
+        let SOFTENING = 0.4
+        let TRAILS_ENABLED = true
+        let MERGE_ENABLED = true
+        let SPAWN_MODE = true
+        let currentSpawnMass = 8
+        let target = new THREE.Vector3(0, 0, 0)
+        let distance = 220
+        let theta = Math.PI * 0.6
+        let phi = Math.PI * 0.45
+        let isDragging = false
+        let prevMouseX = 0
+        let prevMouseY = 0
+        let lastSpawnStart = null
+        let lastSpawnScreen = null
+        let fpsTime = Date.now()
+        let frameCount = 0
+        let fps = 60
+
+        // ====================== BODY CLASS ======================
+        class NBody {
+            constructor(position, velocity, mass, hue = 200) {
+                this.mass = mass
+                this.velocity = velocity.clone()
+                this.baseRadius = Math.cbrt(Math.max(mass, 1)) * 0.9
+                this.radius = this.baseRadius
+
+                // Random vibrant color based on mass (stars are hotter)
+                const color = mass > 30 
+                    ? new THREE.Color().setHSL(0.1, 1, 0.9) 
+                    : new THREE.Color().setHSL(hue / 360, 0.9, 0.7)
+
+                const geometry = new THREE.SphereGeometry(1, 36, 36)
+                const material = new THREE.MeshPhongMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: mass > 25 ? 1.2 : 0.3,
+                    shininess: 30,
+                    specular: 0x222222
+                })
+                this.mesh = new THREE.Mesh(geometry, material)
+                this.mesh.position.copy(position)
+                this.mesh.scale.setScalar(this.baseRadius)
+                scene.add(this.mesh)
+
+                // Optional point light for massive stars
+                if (mass > 35) {
+                    this.light = new THREE.PointLight(color, mass * 0.8, 600)
+                    this.light.position.copy(position)
+                    scene.add(this.light)
+                } else {
+                    this.light = null
+                }
+
+                // Trail
+                this.trailPoints = []
+                this.maxTrailLength = 180
+                const trailGeometry = new THREE.BufferGeometry()
+                this.trailMaterial = new THREE.LineBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.35,
+                    linewidth: 2
+                })
+                this.trailLine = new THREE.Line(trailGeometry, this.trailMaterial)
+                scene.add(this.trailLine)
+            }
+
+            updateTrail() {
+                if (!TRAILS_ENABLED) return
+                this.trailPoints.push(this.mesh.position.clone())
+                if (this.trailPoints.length > this.maxTrailLength) this.trailPoints.shift()
+
+                const positions = new Float32Array(this.trailPoints.length * 3)
+                for (let i = 0; i < this.trailPoints.length; i++) {
+                    const p = this.trailPoints[i]
+                    positions[i * 3] = p.x
+                    positions[i * 3 + 1] = p.y
+                    positions[i * 3 + 2] = p.z
+                }
+                this.trailLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+                this.trailLine.geometry.attributes.position.needsUpdate = true
+            }
+
+            remove() {
+                scene.remove(this.mesh)
+                if (this.light) scene.remove(this.light)
+                scene.remove(this.trailLine)
+            }
+        }
+
+        // ====================== PHYSICS ======================
+        function computeForces() {
+            const n = bodies.length
+            const accelerations = Array(n).fill().map(() => new THREE.Vector3())
+
+            for (let i = 0; i < n; i++) {
+                for (let j = i + 1; j < n; j++) {
+                    const dx = bodies[j].mesh.position.x - bodies[i].mesh.position.x
+                    const dy = bodies[j].mesh.position.y - bodies[i].mesh.position.y
+                    const dz = bodies[j].mesh.position.z - bodies[i].mesh.position.z
+
+                    const r2 = dx * dx + dy * dy + dz * dz + SOFTENING * SOFTENING
+                    const r = Math.sqrt(r2)
+                    const force = (G * bodies[i].mass * bodies[j].mass) / r2
+
+                    const ax = (force * dx) / r
+                    const ay = (force * dy) / r
+                    const az = (force * dz) / r
+
+                    accelerations[i].x += ax / bodies[i].mass
+                    accelerations[i].y += ay / bodies[i].mass
+                    accelerations[i].z += az / bodies[i].mass
+
+                    accelerations[j].x -= ax / bodies[j].mass
+                    accelerations[j].y -= ay / bodies[j].mass
+                    accelerations[j].z -= az / bodies[j].mass
+                }
+            }
+
+            // Apply acceleration + velocity + position
+            const dt = 0.016 * SIM_SPEED
+            for (let i = 0; i < n; i++) {
+                const b = bodies[i]
+                b.velocity.add(accelerations[i].multiplyScalar(dt))
+                b.mesh.position.add(b.velocity.clone().multiplyScalar(dt))
+
+                // Update light
+                if (b.light) b.light.position.copy(b.mesh.position)
+
+                b.updateTrail()
+            }
+
+            // Collision + merge
+            if (!MERGE_ENABLED) return
+
+            for (let i = n - 1; i >= 0; i--) {
+                for (let j = i - 1; j >= 0; j--) {
+                    const b1 = bodies[i]
+                    const b2 = bodies[j]
+                    const dx = b1.mesh.position.x - b2.mesh.position.x
+                    const dy = b1.mesh.position.y - b2.mesh.position.y
+                    const dz = b1.mesh.position.z - b2.mesh.position.z
+                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
+
+                    if (dist < b1.radius + b2.radius && dist > 0.01) {
+                        // Merge b1 into b2 (momentum conservation)
+                        const totalMass = b1.mass + b2.mass
+                        const newVel = b2.velocity.clone()
+                            .multiplyScalar(b2.mass)
+                            .add(b1.velocity.clone().multiplyScalar(b1.mass))
+                            .divideScalar(totalMass)
+
+                        b2.mass = totalMass
+                        b2.velocity.copy(newVel)
+                        b2.radius = Math.cbrt(totalMass) * 0.9
+                        b2.mesh.scale.setScalar(b2.radius)
+
+                        // Transfer light
+                        if (b1.light) {
+                            if (b2.light) scene.remove(b2.light)
+                            b2.light = b1.light
+                        }
+
+                        // Remove b1
+                        b1.remove()
+                        bodies.splice(i, 1)
+                        break
+                    }
+                }
+            }
+        }
+
+        // ====================== SPAWN HELPERS ======================
+        function getWorldPoint(event) {
+            const rect = renderer.domElement.getBoundingClientRect()
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+            const mouse = new THREE.Vector2(x, y)
+            raycaster.setFromCamera(mouse, camera)
+
+            // Spawn on the XY plane (classic n-body plane)
+            const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+            const point = new THREE.Vector3()
+            raycaster.ray.intersectPlane(plane, point)
+            return point || new THREE.Vector3(0, 0, 0)
+        }
+
+        function spawnBody(startPos, endPos, mass) {
+            let velocity = new THREE.Vector3(0, 0, 0)
+            
+            // If dragged, give initial velocity
+            if (startPos && endPos) {
+                const dragVector = endPos.clone().sub(startPos)
+                const dragLength = dragVector.length()
+                if (dragLength > 4) {
+                    velocity = dragVector.multiplyScalar(0.65) // feels very natural
+                }
+            }
+
+            // Slight random z-velocity for 3D fun
+            velocity.z += (Math.random() - 0.5) * 4
+
+            const hue = Math.random() * 360
+            const body = new NBody(startPos, velocity, mass, hue)
+            bodies.push(body)
+            updateBodyCount()
+        }
+
+        // ====================== PRESETS ======================
+        function loadSolarSystem() {
+            clearAllBodies()
+            const center = new THREE.Vector3(0, 0, 0)
+
+            // Sun
+            const sun = new NBody(center, new THREE.Vector3(), 800, 40)
+            bodies.push(sun)
+
+            // Planets with realistic-ish orbital velocities
+            const planets = [
+                { r: 45, mass: 12, speed: 18, hue: 200 },
+                { r: 72, mass: 8,  speed: 14, hue: 260 },
+                { r: 105, mass: 22, speed: 11, hue: 120 },
+                { r: 148, mass: 6,  speed: 9,  hue: 30 }
+            ]
+
+            planets.forEach((p, i) => {
+                const angle = i * (Math.PI * 2 / planets.length) + Math.random() * 0.6
+                const pos = new THREE.Vector3(
+                    Math.cos(angle) * p.r,
+                    Math.sin(angle) * p.r * 0.3,
+                    (Math.random() - 0.5) * 12
+                )
+                const vel = new THREE.Vector3(
+                    -Math.sin(angle) * p.speed,
+                    Math.cos(angle) * p.speed * 0.3,
+                    (Math.random() - 0.5) * 6
+                )
+                const body = new NBody(pos, vel, p.mass, p.hue)
+                bodies.push(body)
+            })
+            updateBodyCount()
+        }
+
+        function loadBinarySystem() {
+            clearAllBodies()
+            const body1 = new NBody(new THREE.Vector3(-55, 0, 0), new THREE.Vector3(0, 22, 5), 280, 20)
+            const body2 = new NBody(new THREE.Vector3(55, 0, 0), new THREE.Vector3(0, -22, -5), 280, 20)
+            bodies.push(body1, body2)
+            updateBodyCount()
+        }
+
+        function addRandomCluster(count) {
+            for (let i = 0; i < count; i++) {
+                const pos = new THREE.Vector3(
+                    (Math.random() - 0.5) * 120,
+                    (Math.random() - 0.5) * 120,
+                    (Math.random() - 0.5) * 60
+                )
+                const vel = new THREE.Vector3(
+                    (Math.random() - 0.5) * 12,
+                    (Math.random() - 0.5) * 12,
+                    (Math.random() - 0.5) * 12
+                )
+                const mass = Math.random() * 18 + 3
+                const body = new NBody(pos, vel, mass)
+                bodies.push(body)
+            }
+            updateBodyCount()
+        }
+
+        function explodeAll() {
+            bodies.forEach(b => {
+                b.velocity.x += (Math.random() - 0.5) * 90
+                b.velocity.y += (Math.random() - 0.5) * 90
+                b.velocity.z += (Math.random() - 0.5) * 90
+            })
+        }
+
+        // ====================== UTILITIES ======================
+        function clearAllBodies() {
+            bodies.forEach(b => b.remove())
+            bodies = []
+            updateBodyCount()
+        }
+
+        function updateBodyCount() {
+            document.getElementById('body-count').textContent = bodies.length
+        }
+
+        function togglePause() {
+            isPaused = !isPaused
+        }
+
+        function updateUI() {
+            // Sliders live update
+            G = parseFloat(document.getElementById('g-slider').value)
+            document.getElementById('g-value').textContent = G.toFixed(2)
+
+            SIM_SPEED = parseFloat(document.getElementById('speed-slider').value)
+            document.getElementById('speed-value').textContent = SIM_SPEED.toFixed(1) + 'x'
+
+            SOFTENING = parseFloat(document.getElementById('soft-slider').value)
+            document.getElementById('soft-value').textContent = SOFTENING.toFixed(2)
+
+            currentSpawnMass = parseFloat(document.getElementById('mass-slider').value)
+            document.getElementById('mass-value').textContent = currentSpawnMass
+
+            TRAILS_ENABLED = document.getElementById('trails-toggle').checked
+            MERGE_ENABLED = document.getElementById('merge-toggle').checked
+            SPAWN_MODE = document.getElementById('spawn-mode').checked
+
+            document.getElementById('mode-text').textContent = SPAWN_MODE 
+                ? '🪐 SPAWN MODE ACTIVE' 
+                : '📐 CAMERA MODE'
+        }
+
+        // ====================== CAMERA UPDATE ======================
+        function updateCameraPosition() {
+            const x = distance * Math.sin(phi) * Math.cos(theta)
+            const z = distance * Math.sin(phi) * Math.sin(theta)
+            const y = distance * Math.cos(phi)
+            camera.position.set(x, y, z)
+            camera.lookAt(target)
+        }
+
+        // ====================== ANIMATION LOOP ======================
+        function animate() {
+            requestAnimationFrame(animate)
+
+            if (!isPaused) {
+                computeForces()
+            }
+
+            // FPS counter
+            frameCount++
+            if (Date.now() - fpsTime > 1000) {
+                fps = frameCount
+                frameCount = 0
+                fpsTime = Date.now()
+                document.getElementById('fps').textContent = fps
+            }
+
+            renderer.render(scene, camera)
+        }
+
+        // ====================== INITIALIZATION ======================
+        function init() {
+            const container = document.getElementById('three-container')
+
+            // Scene
+            scene = new THREE.Scene()
+            scene.background = new THREE.Color(0x05050f)
+            scene.fog = new THREE.Fog(0x05050f, 400, 1200)
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(62, container.clientWidth / container.clientHeight, 0.1, 2000)
+            updateCameraPosition()
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: false
+            })
+            renderer.setSize(container.clientWidth, container.clientHeight)
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+            container.appendChild(renderer.domElement)
+
+            // Raycaster for spawning
+            raycaster = new THREE.Raycaster()
+
+            // Background star field (10k stars)
+            const starsCount = 12000
+            const positions = new Float32Array(starsCount * 3)
+            for (let i = 0; i < starsCount * 3; i += 3) {
+                const radius = 800 + Math.random() * 600
+                const thetaStar = Math.random() * Math.PI * 2
+                const phiStar = Math.acos(2 * Math.random() - 1)
+                positions[i]     = radius * Math.sin(phiStar) * Math.cos(thetaStar)
+                positions[i + 1] = radius * Math.sin(phiStar) * Math.sin(thetaStar)
+                positions[i + 2] = radius * Math.cos(phiStar)
+            }
+            const starsGeometry = new THREE.BufferGeometry()
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+            const starsMaterial = new THREE.PointsMaterial({
+                size: 1.4,
+                color: 0xeeeeee,
+                transparent: true,
+                opacity: 0.85,
+                sizeAttenuation: true
+            })
+            const starField = new THREE.Points(starsGeometry, starsMaterial)
+            scene.add(starField)
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x404060, 0.6)
+            scene.add(ambient)
+            const hemi = new THREE.HemisphereLight(0x112233, 0x000000, 0.4)
+            scene.add(hemi)
+
+            // Event listeners
+            const canvas = renderer.domElement
+
+            // Pointer events (works on mobile + desktop)
+            canvas.addEventListener('pointerdown', onPointerDown)
+            canvas.addEventListener('pointermove', onPointerMove)
+            canvas.addEventListener('pointerup', onPointerUp)
+            canvas.addEventListener('pointerleave', onPointerUp)
+            canvas.addEventListener('wheel', onWheel)
+
+            // Sliders & toggles
+            const sliders = document.querySelectorAll('input[type="range"]')
+            sliders.forEach(slider => {
+                slider.addEventListener('input', updateUI)
+            })
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]')
+            checkboxes.forEach(cb => cb.addEventListener('change', updateUI))
+
+            // Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight
+                camera.updateProjectionMatrix()
+                renderer.setSize(container.clientWidth, container.clientHeight)
+            })
+
+            // Initial demo (a few bodies so it doesn't feel empty)
+            setTimeout(() => {
+                addRandomCluster(6)
+                console.log('%c🌌 N-Body Gravity Sandbox ready! Drag to spawn & watch chaos unfold.', 'color:#00ffcc; font-size:13px')
+            }, 400)
+
+            updateUI()
+            animate()
+        }
+
+        // ====================== POINTER HANDLERS ======================
+        function onPointerDown(e) {
+            if (e.button === 2) return // ignore right click
+
+            prevMouseX = e.clientX
+            prevMouseY = e.clientY
+            isDragging = true
+
+            if (SPAWN_MODE) {
+                lastSpawnScreen = { x: e.clientX, y: e.clientY }
+                lastSpawnStart = getWorldPoint(e)
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging) return
+
+            if (!SPAWN_MODE) {
+                // Camera orbit
+                const deltaX = (e.clientX - prevMouseX) * 0.0045
+                const deltaY = (e.clientY - prevMouseY) * 0.0038
+
+                theta += deltaX
+                phi = Math.max(0.08, Math.min(Math.PI - 0.08, phi + deltaY))
+
+                updateCameraPosition()
+
+                prevMouseX = e.clientX
+                prevMouseY = e.clientY
+            }
+            // Spawn mode just records drag - actual spawn happens on pointerup
+        }
+
+        function onPointerUp(e) {
+            if (!isDragging) return
+            isDragging = false
+
+            if (SPAWN_MODE && lastSpawnStart) {
+                const endPos = getWorldPoint(e)
+                const screenDist = lastSpawnScreen 
+                    ? Math.hypot(e.clientX - lastSpawnScreen.x, e.clientY - lastSpawnScreen.y)
+                    : 0
+
+                // If dragged more than 12px → velocity, otherwise static spawn
+                if (screenDist > 12) {
+                    spawnBody(lastSpawnStart, endPos, currentSpawnMass)
+                } else {
+                    spawnBody(lastSpawnStart, null, currentSpawnMass)
+                }
+
+                lastSpawnStart = null
+                lastSpawnScreen = null
+            }
+        }
+
+        function onWheel(e) {
+            e.preventDefault()
+            distance += e.deltaY * 0.28
+            distance = Math.max(35, Math.min(850, distance))
+            updateCameraPosition()
+        }
+
+        // Start everything
+        window.onload = init
+    </script>
+</body>
+</html>
