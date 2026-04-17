@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Universe Size Comparison</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at center, #000 60%, #111);
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin: 20px;
+    }
+    #scale {
+      width: 80%;
+      margin: 20px auto;
+    }
+    .object {
+      margin: 20px auto;
+      transition: transform 0.5s ease;
+    }
+    .circle {
+      border-radius: 50%;
+      margin: 10px auto;
+      background: linear-gradient(145deg, #444, #222);
+      border: 2px solid #fff;
+    }
+    #info {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Universe Size Comparison 🌌</h1>
+  <input type="range" id="scale" min="0" max="6" value="0">
+  <div class="object">
+    <div id="circle" class="circle"></div>
+  </div>
+  <div id="info"></div>
+
+  <script>
+    const data = [
+      {name: "Human", size: 1, color: "#ffcc00"},
+      {name: "Earth", size: 12742, color: "#2e8b57"},
+      {name: "Jupiter", size: 139820, color: "#d2691e"},
+      {name: "Sun", size: 1391000, color: "#ff4500"},
+      {name: "Betelgeuse", size: 1.234e9, color: "#ff6347"},
+      {name: "Milky Way Galaxy", size: 9.46e17, color: "#87ceeb"},
+      {name: "Observable Universe", size: 8.8e26, color: "#9370db"}
+    ];
+
+    const slider = document.getElementById("scale");
+    const circle = document.getElementById("circle");
+    const info = document.getElementById("info");
+
+    function update() {
+      const obj = data[slider.value];
+      const maxDisplay = 300; // max pixel size
+      const relativeSize = Math.log10(obj.size) / Math.log10(data[data.length-1].size);
+      const displaySize = Math.max(10, relativeSize * maxDisplay);
+
+      circle.style.width = displaySize + "px";
+      circle.style.height = displaySize + "px";
+      circle.style.background = obj.color;
+      info.textContent = `${obj.name} — Diameter: ${obj.size.toLocaleString()} km`;
+    }
+
+    slider.addEventListener("input", update);
+    update();
+  </script>
+</body>
+</html>

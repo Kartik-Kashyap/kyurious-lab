@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Boids Flocking • KYURIOUS LABS</title>
+    <style>
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.8);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #00ffcc;
+            --text: #ffffff;
+        }
+
+        /* ==================== NAV BAR ==================== */
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 97%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            letter-spacing: 1px;
+        }
+
+        /* Left: Back Link */
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+        .back-link:hover {
+            opacity: 1;
+            color: var(--text);
+        }
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        /* Center: Branding */
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Right: Status */
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* ==================== HERO HEADER ==================== */
+        .hero-header {
+            position: fixed;
+            top: 72px;
+            left: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .hero-header .realm-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            opacity: 0.8;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .hero-header h1 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: #fff;
+            margin: 0;
+        }
+        .hero-header p {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            max-width: 240px;
+        }
+
+        /* ==================== BODY & CANVAS ==================== */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #boids-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: block;
+        }
+
+        /* ==================== CONTROLS PANEL ==================== */
+        .controls-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            color: #fff;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .controls-panel h2 {
+            margin: 0 0 18px 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .value {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .button-row button {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .button-row button:hover {
+            background: var(--accent);
+            color: #000;
+            transform: translateY(-1px);
+        }
+
+        .info-box {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            color: rgba(255,255,255,0.5);
+            background: rgba(0,0,0,0.3);
+            padding: 14px;
+            border-radius: 10px;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .controls-panel {
+                width: 92%;
+                right: 4%;
+                top: auto;
+                bottom: 20px;
+                max-height: 55vh;
+            }
+            .hero-header {
+                left: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAV BAR -->
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span>
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text">SYSTEM ACTIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO HEADER (left-aligned below nav) -->
+    <div class="hero-header">
+        <div class="realm-tag">⬡ The Chaos Realm</div>
+        <h1>Boids<br>Flocking</h1>
+        <p>Separation • Alignment • Cohesion</p>
+    </div>
+
+    <!-- CONTROLS PANEL -->
+    <div class="controls-panel">
+        <h2>◉ SIMULATION CONTROLS</h2>
+
+        <!-- Boid Count -->
+        <div class="control-group">
+            <label>Boid Count <span id="num-val" class="value">150</span></label>
+            <input type="range" id="num-slider" min="20" max="400" value="150" step="10">
+        </div>
+
+        <!-- Separation -->
+        <div class="control-group">
+            <label>Separation <span id="sep-val" class="value">1.5</span></label>
+            <input type="range" id="sep-slider" min="0" max="5" value="1.5" step="0.1">
+        </div>
+
+        <!-- Alignment -->
+        <div class="control-group">
+            <label>Alignment <span id="ali-val" class="value">1.0</span></label>
+            <input type="range" id="ali-slider" min="0" max="5" value="1.0" step="0.1">
+        </div>
+
+        <!-- Cohesion -->
+        <div class="control-group">
+            <label>Cohesion <span id="coh-val" class="value">1.0</span></label>
+            <input type="range" id="coh-slider" min="0" max="5" value="1.0" step="0.1">
+        </div>
+
+        <!-- Perception Radius -->
+        <div class="control-group">
+            <label>Perception Radius <span id="rad-val" class="value">80</span></label>
+            <input type="range" id="rad-slider" min="30" max="200" value="80" step="5">
+        </div>
+
+        <!-- Max Speed -->
+        <div class="control-group">
+            <label>Max Speed <span id="speed-val" class="value">4</span></label>
+            <input type="range" id="speed-slider" min="1" max="8" value="4" step="0.5">
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="checkbox-row">
+            <input type="checkbox" id="wrap-toggle" checked>
+            <label for="wrap-toggle">Wrap around edges</label>
+        </div>
+        <div class="checkbox-row">
+            <input type="checkbox" id="mouse-toggle">
+            <label for="mouse-toggle">Mouse repulsion (touch supported)</label>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-row">
+            <button onclick="togglePause()">⏸️ Pause</button>
+            <button onclick="resetSimulation()">⟳ Reset</button>
+            <button onclick="addBoids(50)">+50 Boids</button>
+            <button onclick="setPreset('default')">Default</button>
+            <button onclick="setPreset('tight')">Tight Flock</button>
+            <button onclick="setPreset('chaotic')">Chaotic Swarm</button>
+        </div>
+
+        <!-- Rules Info -->
+        <div class="info-box">
+            <strong>Classic Reynolds Boids</strong><br>
+            • Separation: Avoid crowding<br>
+            • Alignment: Steer with neighbors<br>
+            • Cohesion: Move toward group center<br>
+            <br>
+            <span style="opacity:0.6">Drag sliders live • Touch the screen for interaction</span>
+        </div>
+    </div>
+
+    <!-- CANVAS -->
+    <canvas id="boids-canvas"></canvas>
+
+    <script>
+        // =============== GLOBALS ===============
+        let canvas, ctx
+        let boids = []
+        let mousePos = { x: 0, y: 0 }
+        let mouseRepel = false
+        let wrapEdges = true
+        let paused = false
+
+        // Simulation parameters (live adjustable)
+        let separationWeight = 1.5
+        let alignmentWeight = 1.0
+        let cohesionWeight = 1.0
+        let perceptionRadius = 80
+        let maxSpeed = 4
+        let maxForce = 0.25
+
+        // =============== VECTOR HELPERS ===============
+        function createVector(x = 0, y = 0) {
+            return { x, y }
+        }
+
+        function add(a, b) {
+            return { x: a.x + b.x, y: a.y + b.y }
+        }
+
+        function sub(a, b) {
+            return { x: a.x - b.x, y: a.y - b.y }
+        }
+
+        function mult(v, scalar) {
+            return { x: v.x * scalar, y: v.y * scalar }
+        }
+
+        function div(v, scalar) {
+            if (scalar === 0) return { x: 0, y: 0 }
+            return { x: v.x / scalar, y: v.y / scalar }
+        }
+
+        function mag(v) {
+            return Math.hypot(v.x, v.y)
+        }
+
+        function normalize(v) {
+            const m = mag(v)
+            if (m === 0) return { x: 0, y: 0 }
+            return div(v, m)
+        }
+
+        function limit(v, max) {
+            const m = mag(v)
+            if (m > max && m > 0) {
+                return mult(normalize(v), max)
+            }
+            return v
+        }
+
+        function dist(a, b) {
+            return Math.hypot(a.x - b.x, a.y - b.y)
+        }
+
+        // =============== BOID CLASS ===============
+        class Boid {
+            constructor() {
+                this.position = createVector(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                )
+                this.velocity = createVector(
+                    Math.random() * 4 - 2,
+                    Math.random() * 4 - 2
+                )
+                this.acceleration = createVector(0, 0)
+                this.color = '#00ffcc' // neon accent
+            }
+
+            update() {
+                this.velocity = add(this.velocity, this.acceleration)
+                this.velocity = limit(this.velocity, maxSpeed)
+                this.position = add(this.position, this.velocity)
+                this.acceleration = createVector(0, 0)
+            }
+
+            edges() {
+                if (wrapEdges) {
+                    if (this.position.x < 0) this.position.x = canvas.width
+                    if (this.position.x > canvas.width) this.position.x = 0
+                    if (this.position.y < 0) this.position.y = canvas.height
+                    if (this.position.y > canvas.height) this.position.y = 0
+                } else {
+                    // bounce
+                    if (this.position.x < 0 || this.position.x > canvas.width) {
+                        this.velocity.x *= -0.8
+                        this.position.x = Math.max(0, Math.min(canvas.width, this.position.x))
+                    }
+                    if (this.position.y < 0 || this.position.y > canvas.height) {
+                        this.velocity.y *= -0.8
+                        this.position.y = Math.max(0, Math.min(canvas.height, this.position.y))
+                    }
+                }
+            }
+
+            draw() {
+                const angle = Math.atan2(this.velocity.y, this.velocity.x)
+
+                ctx.save()
+                ctx.translate(this.position.x, this.position.y)
+                ctx.rotate(angle)
+
+                // Triangle body
+                ctx.fillStyle = this.color
+                ctx.strokeStyle = '#ffffff'
+                ctx.lineWidth = 1.2
+                ctx.shadowBlur = 8
+                ctx.shadowColor = this.color
+
+                ctx.beginPath()
+                ctx.moveTo(12, 0)      // nose
+                ctx.lineTo(-8, -6)
+                ctx.lineTo(-5, 0)
+                ctx.lineTo(-8, 6)
+                ctx.closePath()
+                ctx.fill()
+                ctx.stroke()
+
+                ctx.restore()
+            }
+        }
+
+        // =============== BOID BEHAVIORS ===============
+        function separate(boid) {
+            let steer = createVector(0, 0)
+            let count = 0
+
+            for (let other of boids) {
+                if (other === boid) continue
+                const d = dist(boid.position, other.position)
+                if (d > 0 && d < perceptionRadius) {
+                    const diff = sub(boid.position, other.position)
+                    const normalized = normalize(diff)
+                    const weighted = div(normalized, d) // stronger when closer
+                    steer = add(steer, weighted)
+                    count++
+                }
+            }
+
+            // Mouse repulsion (if enabled)
+            if (mouseRepel) {
+                const dMouse = dist(boid.position, mousePos)
+                if (dMouse > 0 && dMouse < perceptionRadius * 1.8) {
+                    const diffMouse = sub(boid.position, mousePos)
+                    const normalizedMouse = normalize(diffMouse)
+                    const weightedMouse = div(normalizedMouse, dMouse)
+                    steer = add(steer, weightedMouse)
+                    count++
+                }
+            }
+
+            if (count > 0) {
+                steer = div(steer, count)
+                steer = normalize(steer)
+                steer = mult(steer, maxSpeed)
+                steer = sub(steer, boid.velocity)
+                steer = limit(steer, maxForce)
+            }
+            return steer
+        }
+
+        function align(boid) {
+            let sumVel = createVector(0, 0)
+            let count = 0
+
+            for (let other of boids) {
+                if (other === boid) continue
+                const d = dist(boid.position, other.position)
+                if (d > 0 && d < perceptionRadius) {
+                    sumVel = add(sumVel, other.velocity)
+                    count++
+                }
+            }
+
+            if (count > 0) {
+                sumVel = div(sumVel, count)
+                sumVel = normalize(sumVel)
+                sumVel = mult(sumVel, maxSpeed)
+                let steer = sub(sumVel, boid.velocity)
+                steer = limit(steer, maxForce)
+                return steer
+            }
+            return createVector(0, 0)
+        }
+
+        function cohere(boid) {
+            let sumPos = createVector(0, 0)
+            let count = 0
+
+            for (let other of boids) {
+                if (other === boid) continue
+                const d = dist(boid.position, other.position)
+                if (d > 0 && d < perceptionRadius) {
+                    sumPos = add(sumPos, other.position)
+                    count++
+                }
+            }
+
+            if (count > 0) {
+                sumPos = div(sumPos, count)
+                let desired = sub(sumPos, boid.position)
+                desired = normalize(desired)
+                desired = mult(desired, maxSpeed)
+                let steer = sub(desired, boid.velocity)
+                steer = limit(steer, maxForce)
+                return steer
+            }
+            return createVector(0, 0)
+        }
+
+        // =============== MAIN ANIMATION LOOP ===============
+        function animate() {
+            // Gentle trail effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+            if (!paused) {
+                for (let boid of boids) {
+                    const sep = separate(boid)
+                    const ali = align(boid)
+                    const coh = cohere(boid)
+
+                    // Apply weighted forces
+                    boid.acceleration = add(boid.acceleration, mult(sep, separationWeight))
+                    boid.acceleration = add(boid.acceleration, mult(ali, alignmentWeight))
+                    boid.acceleration = add(boid.acceleration, mult(coh, cohesionWeight))
+
+                    boid.update()
+                    boid.edges()
+                }
+            }
+
+            // Draw all boids
+            for (let boid of boids) {
+                boid.draw()
+            }
+
+            requestAnimationFrame(animate)
+        }
+
+        // =============== RESIZE HANDLER ===============
+        function resizeCanvas() {
+            canvas.width = window.innerWidth
+            canvas.height = window.innerHeight
+        }
+
+        // =============== UI SYNC HELPERS ===============
+        function syncSlider(id, valueId, variable, decimals = 1) {
+            const slider = document.getElementById(id)
+            const valEl = document.getElementById(valueId)
+            slider.addEventListener('input', () => {
+                const v = parseFloat(slider.value)
+                window[variable] = v
+                valEl.textContent = decimals === 0 ? Math.round(v) : v.toFixed(decimals)
+            })
+        }
+
+        function syncNumBoids() {
+            const slider = document.getElementById('num-slider')
+            const valEl = document.getElementById('num-val')
+            slider.addEventListener('input', () => {
+                let target = parseInt(slider.value)
+                valEl.textContent = target
+
+                // Add or remove boids live
+                while (boids.length < target) {
+                    boids.push(new Boid())
+                }
+                while (boids.length > target) {
+                    boids.pop()
+                }
+            })
+        }
+
+        // =============== CONTROL FUNCTIONS ===============
+        window.togglePause = function () {
+            paused = !paused
+            const btns = document.querySelectorAll('.button-row button')
+            const pauseBtn = Array.from(btns).find(b => b.textContent.includes('Pause') || b.textContent.includes('▶️'))
+            if (pauseBtn) {
+                pauseBtn.textContent = paused ? '▶️ Play' : '⏸️ Pause'
+            }
+        }
+
+        window.resetSimulation = function () {
+            const target = parseInt(document.getElementById('num-slider').value)
+            boids = []
+            for (let i = 0; i < target; i++) {
+                boids.push(new Boid())
+            }
+            paused = false
+            // Reset pause button text
+            const btns = document.querySelectorAll('.button-row button')
+            const pauseBtn = Array.from(btns).find(b => b.textContent.includes('Pause') || b.textContent.includes('▶️'))
+            if (pauseBtn) pauseBtn.textContent = '⏸️ Pause'
+        }
+
+        window.addBoids = function (n) {
+            const slider = document.getElementById('num-slider')
+            let current = parseInt(slider.value)
+            let target = Math.min(400, current + n)
+            slider.value = target
+            document.getElementById('num-val').textContent = target
+
+            while (boids.length < target) {
+                boids.push(new Boid())
+            }
+        }
+
+        window.setPreset = function (type) {
+            const sepSlider = document.getElementById('sep-slider')
+            const aliSlider = document.getElementById('ali-slider')
+            const cohSlider = document.getElementById('coh-slider')
+            const radSlider = document.getElementById('rad-slider')
+
+            if (type === 'default') {
+                separationWeight = 1.5; sepSlider.value = 1.5
+                alignmentWeight = 1.0; aliSlider.value = 1.0
+                cohesionWeight = 1.0; cohSlider.value = 1.0
+                perceptionRadius = 80; radSlider.value = 80
+            } else if (type === 'tight') {
+                separationWeight = 2.8; sepSlider.value = 2.8
+                alignmentWeight = 1.8; aliSlider.value = 1.8
+                cohesionWeight = 2.2; cohSlider.value = 2.2
+                perceptionRadius = 55; radSlider.value = 55
+            } else if (type === 'chaotic') {
+                separationWeight = 0.8; sepSlider.value = 0.8
+                alignmentWeight = 0.4; aliSlider.value = 0.4
+                cohesionWeight = 0.6; cohSlider.value = 0.6
+                perceptionRadius = 140; radSlider.value = 140
+            }
+
+            // Update displayed values
+            document.getElementById('sep-val').textContent = separationWeight.toFixed(1)
+            document.getElementById('ali-val').textContent = alignmentWeight.toFixed(1)
+            document.getElementById('coh-val').textContent = cohesionWeight.toFixed(1)
+            document.getElementById('rad-val').textContent = Math.round(perceptionRadius)
+        }
+
+        // =============== INITIALIZATION ===============
+        function init() {
+            canvas = document.getElementById('boids-canvas')
+            ctx = canvas.getContext('2d', { alpha: true })
+
+            resizeCanvas()
+            window.addEventListener('resize', resizeCanvas)
+
+            // Create initial boids
+            for (let i = 0; i < 150; i++) {
+                boids.push(new Boid())
+            }
+
+            // Mouse / Touch interaction
+            function updateMouse(e) {
+                if (e.touches) {
+                    mousePos.x = e.touches[0].clientX
+                    mousePos.y = e.touches[0].clientY
+                } else {
+                    mousePos.x = e.clientX
+                    mousePos.y = e.clientY
+                }
+            }
+
+            canvas.addEventListener('mousemove', updateMouse)
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault()
+                updateMouse(e)
+            })
+
+            // Live parameter sliders
+            syncSlider('sep-slider', 'sep-val', 'separationWeight')
+            syncSlider('ali-slider', 'ali-val', 'alignmentWeight')
+            syncSlider('coh-slider', 'coh-val', 'cohesionWeight')
+            syncSlider('rad-slider', 'rad-val', 'perceptionRadius', 0)
+            syncSlider('speed-slider', 'speed-val', 'maxSpeed')
+
+            // Boid count slider (special handling)
+            syncNumBoids()
+
+            // Toggle listeners
+            document.getElementById('wrap-toggle').addEventListener('change', (e) => {
+                wrapEdges = e.target.checked
+            })
+
+            document.getElementById('mouse-toggle').addEventListener('change', (e) => {
+                mouseRepel = e.target.checked
+            })
+
+            // Start animation
+            console.log('%c✅ Boids Flocking Simulation ready – KYURIOUS LABS', 'color:#00ffcc; font-family:monospace')
+            animate()
+        }
+
+        // Boot the simulation
+        window.onload = init
+    </script>
+</body>
+</html>

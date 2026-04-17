@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Make a Pen From Scratch</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="overlay">
+    <div class="app-shell">
+      <!-- Top bar -->
+      <div class="top-bar">
+        <div class="brand">
+          <div class="brand-logo"></div>
+          <div class="brand-text">
+            <div class="brand-title">Make a Pen</div>
+            <div class="brand-subtitle">Civilizational difficulty simulator</div>
+          </div>
+        </div>
+        <div class="top-right">
+          <div class="pill">
+            <span>Difficulty:</span>
+            <strong>Absurd</strong>
+          </div>
+          <div class="pill">
+            <span>Mode:</span>
+            <strong>Start with nothing</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div class="hud">
+        <div class="hud-top">
+          <div>
+            <div class="hud-title">Complexity Meter</div>
+            <div class="hud-sub">
+              How much civilization are you secretly asking for when you say,
+              “It’s just a ₹5 pen.”
+            </div>
+          </div>
+          <div class="badge">
+            <span id="complexityLabel">Civilization required: Beginner</span>
+          </div>
+        </div>
+        <div>
+          <div class="complexity-bar-wrapper">
+            <div class="complexity-bar" id="complexityBar"></div>
+          </div>
+          <div class="complexity-label-row">
+            <span>“DIY in a weekend”</span>
+            <span>“You need half the planet”</span>
+          </div>
+        </div>
+        <div class="hud-stats">
+          <div class="stat">
+            <span>Specialists involved</span>
+            <span class="stat-value" id="statSpecialists">3</span>
+          </div>
+          <div class="stat">
+            <span>Years of collective R&amp;D</span>
+            <span class="stat-value" id="statYears">0.5</span>
+          </div>
+          <div class="stat">
+            <span>Countries touched</span>
+            <span class="stat-value" id="statCountries">1</span>
+          </div>
+          <div class="stat">
+            <span>Invisible money spent</span>
+            <span class="stat-value" id="statMoney">₹ 5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="main-card">
+        <!-- Left main panel -->
+        <div class="panel">
+          <!-- INTRO VIEW -->
+          <div class="view active" id="view-intro">
+            <div class="intro-hero">
+              <div class="intro-kicker">Thought experiment • Interactive</div>
+              <div class="intro-title">
+                So you want to <span>make a pen</span> from scratch?
+              </div>
+              <div class="intro-sub">
+                No factories. No Amazon. Just you, a planet, and a mildly
+                overconfident YouTube tutorial in your head.
+                <br /><br />
+                Let’s see how many
+                <em>people, places, and centuries</em> quietly sit inside that
+                “simple” ballpoint.
+              </div>
+              <div class="intro-actions">
+                <button class="btn btn-primary" id="btnStart">
+                  Start with nothing
+                  <span>→</span>
+                </button>
+                <button class="btn btn-ghost btn-small" id="btnSkipToSummary">
+                  I already feel guilty. Show me the truth.
+                </button>
+              </div>
+              <div class="intro-footnote">
+                You’ll pick materials, hit geopolitical walls, argue with
+                regulations, and accidentally reinvent half of modern industry.
+              </div>
+            </div>
+            <div class="intro-visual">
+              <div class="intro-orbit">
+                <div class="intro-planet"></div>
+                <div class="intro-dot"></div>
+                <div class="intro-label">Everyday object = tiny solar system of effort</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MATERIALS VIEW -->
+          <div class="view" id="view-materials">
+  <div class="view-header">
+    <div>
+      <div class="step-badge">Step 1 • Raw materials</div>
+      <div class="view-title">Pick a starting point</div>
+      <div class="view-sub">
+        You can’t “just assemble a pen.” First, you need the stuff it secretly eats:
+        graphite, plastic, metals, dyes…
+      </div>
+    </div>
+    <div class="view-controls">
+      <span id="materialsClicksLabel">Decisions made: 0</span>
+    </div>
+  </div>
+            <div class="cards-grid">
+              <div
+                class="card-option"
+                data-key="graphite"
+              >
+                <h3>Mine Graphite for the “Lead”</h3>
+                <div class="card-meta">
+                  A soft black miracle that doesn’t even live in your country.
+                </div>
+                <div class="card-tag-row">
+                  <span class="chip">Import reliant</span>
+                  <span class="chip">Mining rights</span>
+                  <span class="chip">War-sensitive</span>
+                </div>
+                <div class="card-foot">
+                  <span>Origin story of pencils &amp; pens</span>
+                  <span class="card-xp">+ 120 complexity</span>
+                </div>
+              </div>
+
+              <div
+                class="card-option"
+                data-key="plastic"
+              >
+                <h3>Turn Crude Oil into Plastic</h3>
+                <div class="card-meta">
+                  Drill flammable dinosaur soup, then ask chemistry to fix it.
+                </div>
+                <div class="card-tag-row">
+                  <span class="chip">Refinery</span>
+                  <span class="chip">Steam cracking</span>
+                  <span class="chip">FDA concerns</span>
+                </div>
+                <div class="card-foot">
+                  <span>Body, cap, grip, everything</span>
+                  <span class="card-xp">+ 220 complexity</span>
+                </div>
+              </div>
+
+              <div
+                class="card-option"
+                data-key="metal"
+              >
+                <h3>Make the Metal Tip &amp; Ball</h3>
+                <div class="card-meta">
+                  Perfectly machined steel that must not leak or scratch.
+                </div>
+                <div class="card-tag-row">
+                  <span class="chip">Micro tolerances</span>
+                  <span class="chip">Precision tooling</span>
+                </div>
+                <div class="card-foot">
+                  <span>Where ink meets paper</span>
+                  <span class="card-xp">+ 180 complexity</span>
+                </div>
+              </div>
+
+              <div
+                class="card-option"
+                data-key="ink"
+              >
+                <h3>Formulate Long-lasting Ink</h3>
+                <div class="card-meta">
+                  A liquid that dries fast, doesn’t fade, and doesn’t kill you.
+                </div>
+                <div class="card-tag-row">
+                  <span class="chip">Pigments</span>
+                  <span class="chip">Solvents</span>
+                  <span class="chip">Stain test</span>
+                </div>
+                <div class="card-foot">
+                  <span>Chemistry boss level</span>
+                  <span class="card-xp">+ 260 complexity</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUMMARY VIEW -->
+          <div class="view" id="view-summary">
+            <div class="view-header">
+              <div>
+                <div class="step-badge">Revelation</div>
+                <div class="view-title">
+                  You didn’t build a pen. You summoned a civilization.
+                </div>
+                <div class="view-sub">
+                  No single human on Earth understands every step that led to
+                  the pen on your desk. You just asked all of them to help.
+                </div>
+              </div>
+              <div class="view-controls">
+                <button class="btn btn-small btn-ghost" id="btnReplay">
+                  Re-try from another starting point
+                </button>
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-main" id="summaryText">
+                <h3>The illusion of “I could make this myself”</h3>
+                <p>
+                  When you buy a ₹5 pen, it feels like a small, simple object.
+                  A tube of plastic, some ink, a little metal, done. In your
+                  head, you imagine a single factory, maybe a single worker on a
+                  line.
+                </p>
+                <p>
+                  But the moment you try to make one from nothing, reality
+                  glitches. You crash into <em>mines</em>, <em>refineries</em>,
+                  <em>labs</em>, <em>ports</em>, <em>trade laws</em>,
+                  <em>regulators</em>, <em>patents</em>, and
+                  <em>public outrage about plastic</em>.
+                </p>
+                <p>
+                  What looks like a “cheap pen” is actually a physical record of
+                  thousands of people solving problems you will never hear
+                  about:
+                </p>
+                <ul class="summary-list">
+                  <li>
+                    engineers who figured out how to machine the tiny ball at
+                    the tip;
+                  </li>
+                  <li>
+                    chemists who made sure the ink doesn’t fade, smear, or
+                    poison you;
+                  </li>
+                  <li>
+                    miners who pull ore and oil out of dangerous places;
+                  </li>
+                  <li>
+                    logistics teams that quietly move it all across continents;
+                  </li>
+                  <li>
+                    bureaucrats who make sure it doesn’t explode, leak, or set
+                    your house on fire.
+                  </li>
+                </ul>
+                <p>
+                  You never paid most of them directly. Some of the real cost is
+                  pushed onto future generations, onto the climate, onto
+                  overworked people you’ll never meet.
+                </p>
+                <p>
+                  That doesn’t mean you should feel guilty for existing. It just
+                  means: these “small” objects are
+                  <strong>civilizational miracles</strong>. They deserve a tiny
+                  bit of reverence.
+                </p>
+                <p>
+                  Use your things well. Break them slower. Lose them less. When
+                  the pen finally runs out, imagine all the invisible hands you
+                  just used up—and say a quiet, slightly dramatic “thank you.”
+                </p>
+              </div>
+              <div class="summary-sidebar">
+                <div>
+                  <div class="summary-label">Your simulated run</div>
+                  <div class="summary-number" id="summaryComplexityLabel">
+                    0%
+                  </div>
+                  <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                    of our arbitrary “you need half the planet” scale.
+                  </div>
+                </div>
+                <div class="summary-chip-row">
+                  <div class="summary-chip" id="summarySpecialistsChip">
+                    ~0 specialists quietly involved
+                  </div>
+                  <div class="summary-chip" id="summaryCountriesChip">
+                    Across 0 countries and trade zones
+                  </div>
+                  <div class="summary-chip" id="summaryYearsChip">
+                    Borrowing ~0 years of R&amp;D
+                  </div>
+                  <div class="summary-chip" id="summaryMoneyChip">
+                    With invisible costs far above ₹5
+                  </div>
+                </div>
+                <div class="summary-footer">
+                  Next time you “just need a pen”, remember: you’re briefly
+                  collaborating with thousands of strangers and a few centuries
+                  of trial and error.
+                  <br /><br />
+                  <span>Try not to chew the cap.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-timeline">
+  <div class="view-header">
+    <div>
+      <div class="step-badge">History of Innovation</div>
+      <div class="view-title">Centuries inside your pen</div>
+      <div class="view-sub">
+        Slide through time to see who unintentionally helped you make this pen.
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE SLIDER -->
+  <div id="timelineContainer"></div>
+  <button class="btn btn-primary btn-small" id="btnBackToMaterials">← Back</button>
+</div>
+
+<div class="view" id="view-map">
+  <div class="view-header">
+    <div>
+      <div class="step-badge">Global Supply Chain</div>
+      <div class="view-title">Where your pen travels</div>
+      <div class="view-sub">
+        Here we will show a fake but realistic trade route of materials.
+      </div>
+    </div>
+  </div>
+  <div id="mapContainer">Map will appear here.</div>
+  <button class="btn btn-primary btn-small" id="btnBackFromMap">← Back</button>
+</div>
+
+
+
+        <!-- Right side panel -->
+        <aside class="side-panel">
+          <div class="side-panel-header">Live commentary</div>
+          <div class="side-panel-body">
+            <div class="side-note" id="sideHint">
+              <strong>Hint:</strong> Click any card to “attempt” that part of
+              the pen. We’ll quietly increase the number of humans you’re
+              accidentally hiring.
+            </div>
+            <div class="side-note">
+              <strong>Goal?</strong> You can’t really “win.” You just slowly
+              realise self-sufficiency is a cute myth in the 21st century.
+            </div>
+            <div class="event-log" id="eventLog"></div>
+          </div>
+          <div class="side-footer">
+            Every object is a tiny group project where you never learn your
+            teammates’ names. <span>#CreditsRoll</span>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="bottom-bar">
+        <div class="bottom-left">
+          <span>Inspired by supply chains, regulations, and unreasonable optimism.</span>
+        </div>
+        <div class="bottom-right">
+          <button class="link-ghost" id="btnForceEvent">
+            Trigger a random complication
+          </button>
+          <button class="link-ghost" id="btnJumpSummarySmall">
+            Skip to “respect your pen” speech →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for material / event details -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-kicker" id="modalKicker">Detail</div>
+          <div class="modal-title" id="modalTitle">Title</div>
+        </div>
+        <button class="btn btn-ghost btn-small" id="modalCloseBtn">
+          Close
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <div class="modal-deltas" id="modalDeltas"></div>
+        <div>
+          <button class="btn btn-primary btn-small" id="modalAcceptBtn">
+            Accept hidden cost
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fold-and-Cut Explorer (Prototype)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      background: #111827;
+      color: #e5e7eb;
+    }
+
+    #sidebar {
+      width: 320px;
+      padding: 16px;
+      border-right: 1px solid #1f2933;
+      background: #020617;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 4px;
+    }
+
+    h2 {
+      font-size: 14px;
+      margin: 8px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    button {
+      border: none;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #1f2937;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s, transform 0.05s, box-shadow 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #1f2937;
+      border-color: #4b5563;
+      box-shadow: 0 0 0 1px #4b5563;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button[data-active="true"] {
+      background: #2563eb;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 1px #93c5fd;
+    }
+
+    #info {
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 8px;
+      border-radius: 8px;
+      background: #020617;
+      border: 1px solid #1f2937;
+      max-height: 40vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    #status {
+      font-size: 11px;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+
+    #paper-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top left, #1f2937 0, #020617 55%, #000 100%);
+      padding: 16px;
+    }
+
+    #paper {
+      background: #f9fafb;
+      box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.7),
+        0 0 0 1px #00000033;
+      border-radius: 4px;
+      cursor: crosshair;
+    }
+
+    #footer-note {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
+    a.export-link {
+      color: #93c5fd;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    a.export-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div>
+      <h1>Fold-and-Cut Explorer</h1>
+      <div style="font-size:12px;color:#9ca3af;">
+        Draw a polygonal shape on the paper. Close the shape, add fold lines,
+        and export as PNG / SVG or print to PDF.
+      </div>
+    </div>
+
+    <div>
+      <h2>Modes</h2>
+      <div class="btn-row">
+        <button id="mode-draw" data-active="true">✏️ Draw shape</button>
+        <button id="mode-fold">📐 Add fold line</button>
+        <button id="btn-close-shape">✅ Close shape</button>
+        <button id="btn-clear">🧹 Clear</button>
+      </div>
+      <div id="status"></div>
+    </div>
+
+    <div>
+      <h2>Fold helper</h2>
+      <div class="btn-row">
+        <button id="btn-auto-fold">✨ Compute fold line (demo)</button>
+      </div>
+      <div id="fold-instructions" style="font-size:11px;color:#9ca3af;margin-top:6px;">
+        Tip: After drawing your shape, you can add fold lines manually, or use the simple demo fold generator.
+      </div>
+    </div>
+
+    <div>
+      <h2>Export</h2>
+      <div class="btn-row">
+        <button id="btn-export-png">🖼 PNG</button>
+        <button id="btn-export-svg">📐 SVG</button>
+        <button id="btn-print">🧾 Print / PDF</button>
+      </div>
+    </div>
+
+    <div>
+      <h2>How to use</h2>
+      <div id="info">
+1. <b>Draw mode</b> (default):
+   • Click on the paper to add vertices.  
+   • A preview segment shows from the last vertex to your cursor.  
+2. When you have ≥ 3 points, click <b>“Close shape”</b>.
+3. Switch to <b>“Add fold line”</b>:
+   • Click drag: press at start of fold, release at end.  
+4. Use <b>“Compute fold line (demo)”</b> to generate a simple central fold axis
+   (not a full theorem-accurate crease pattern).
+5. Use the export buttons for PNG / SVG, or print → “Save as PDF”.
+
+<b>Note:</b> This is a geometric/UX prototype. A full 
+mathematically exact fold-and-cut algorithm would be the next layer.
+      </div>
+      <div id="footer-note">
+        Made for exploring the fold-and-cut idea. Plug in a research-grade
+        algorithm here for production use at NIFT. 🙂
+      </div>
+    </div>
+  </div>
+
+  <div id="paper-container">
+    <canvas id="paper" width="800" height="600"></canvas>
+  </div>
+
+  <script>
+    // ===============================
+    // Basic setup
+    // ===============================
+    const canvas = document.getElementById("paper");
+    const ctx = canvas.getContext("2d");
+
+    let mode = "draw"; // "draw" or "fold"
+    let shapeClosed = false;
+
+    /** Polygon points: [{x, y}, ...] */
+    let polygon = [];
+
+    /** Fold lines: [{p1: {x,y}, p2: {x,y}}] */
+    let folds = [];
+
+    // For interaction
+    let isMouseDown = false;
+    let dragStart = null;
+    let mousePos = { x: 0, y: 0 };
+
+    const modeDrawBtn = document.getElementById("mode-draw");
+    const modeFoldBtn = document.getElementById("mode-fold");
+    const closeShapeBtn = document.getElementById("btn-close-shape");
+    const clearBtn = document.getElementById("btn-clear");
+    const autoFoldBtn = document.getElementById("btn-auto-fold");
+    const statusEl = document.getElementById("status");
+    const foldInstructionsEl = document.getElementById("fold-instructions");
+
+    const exportPngBtn = document.getElementById("btn-export-png");
+    const exportSvgBtn = document.getElementById("btn-export-svg");
+    const printBtn = document.getElementById("btn-print");
+
+    function setMode(newMode) {
+      mode = newMode;
+      modeDrawBtn.dataset.active = (mode === "draw");
+      modeFoldBtn.dataset.active = (mode === "fold");
+      canvas.style.cursor = mode === "draw" ? "crosshair" : "crosshair";
+      updateStatus();
+      redraw();
+    }
+
+    function updateStatus() {
+      if (!polygon.length) {
+        statusEl.textContent = "Status: No shape yet. Click on the paper to place vertices.";
+        return;
+      }
+      if (!shapeClosed) {
+        statusEl.textContent = `Status: Building shape — vertices: ${polygon.length}. Click “Close shape” when done.`;
+      } else {
+        statusEl.textContent = `Status: Shape closed with ${polygon.length} vertices. Fold lines: ${folds.length}. Mode: ${mode}.`;
+      }
+    }
+
+    // ===============================
+    // Drawing helpers
+    // ===============================
+    function drawPaperBackground() {
+      ctx.save();
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Subtle paper texture grid
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 0.3;
+      const grid = 40;
+      ctx.beginPath();
+      for (let x = grid; x < canvas.width; x += grid) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+      }
+      for (let y = grid; y < canvas.height; y += grid) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPolygon() {
+      if (!polygon.length) return;
+
+      ctx.save();
+      // Fill
+      if (shapeClosed && polygon.length >= 3) {
+        ctx.beginPath();
+        ctx.moveTo(polygon[0].x, polygon[0].y);
+        for (let i = 1; i < polygon.length; i++) {
+          ctx.lineTo(polygon[i].x, polygon[i].y);
+        }
+        ctx.closePath();
+
+        ctx.fillStyle = "rgba(37, 99, 235, 0.12)";
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#1d4ed8";
+        ctx.stroke();
+      }
+
+      // Edges (while drawing)
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#2563eb";
+      ctx.beginPath();
+      ctx.moveTo(polygon[0].x, polygon[0].y);
+      for (let i = 1; i < polygon.length; i++) {
+        ctx.lineTo(polygon[i].x, polygon[i].y);
+      }
+      if (!shapeClosed && polygon.length >= 1) {
+        // preview line from last point to mouse
+        ctx.lineTo(mousePos.x, mousePos.y);
+      }
+      ctx.stroke();
+
+      // Points
+      ctx.fillStyle = "#111827";
+      for (const p of polygon) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawFolds() {
+      if (!folds.length) return;
+      ctx.save();
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = "#b91c1c";
+      for (const f of folds) {
+        ctx.beginPath();
+        ctx.moveTo(f.p1.x, f.p1.y);
+        ctx.lineTo(f.p2.x, f.p2.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function redraw() {
+      drawPaperBackground();
+      drawPolygon();
+      drawFolds();
+    }
+
+    // ===============================
+    // Canvas events
+    // ===============================
+    canvas.addEventListener("mousemove", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mousePos.x = e.clientX - rect.left;
+      mousePos.y = e.clientY - rect.top;
+
+      if (mode === "fold" && isMouseDown && dragStart) {
+        // live preview of fold line
+        redraw();
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#f97316";
+        ctx.beginPath();
+        ctx.moveTo(dragStart.x, dragStart.y);
+        ctx.lineTo(mousePos.x, mousePos.y);
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      // draw mode: show preview from last point to mouse
+      redraw();
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Prevent context menu for right click
+      if (e.button === 2) {
+        e.preventDefault();
+        return;
+      }
+
+      if (mode === "draw") {
+        if (shapeClosed) {
+          // If shape already closed, start a new polygon?
+          // For now: ignore. User must clear explicitly.
+          return;
+        }
+        polygon.push({ x, y });
+        updateStatus();
+        redraw();
+      } else if (mode === "fold") {
+        isMouseDown = true;
+        dragStart = { x, y };
+      }
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (mode === "fold" && isMouseDown && dragStart) {
+        isMouseDown = false;
+        const dx = x - dragStart.x;
+        const dy = y - dragStart.y;
+        const len = Math.hypot(dx, dy);
+        if (len > 5) {
+          folds.push({
+            p1: { ...dragStart },
+            p2: { x, y }
+          });
+          updateStatus();
+        }
+        dragStart = null;
+        redraw();
+      }
+    });
+
+    canvas.addEventListener("contextmenu", (e) => {
+      // Right-click to close shape if drawing
+      e.preventDefault();
+      if (mode === "draw" && !shapeClosed && polygon.length >= 3) {
+        shapeClosed = true;
+        updateStatus();
+        redraw();
+      }
+    });
+
+    // ===============================
+    // Buttons
+    // ===============================
+    modeDrawBtn.addEventListener("click", () => setMode("draw"));
+    modeFoldBtn.addEventListener("click", () => setMode("fold"));
+
+    closeShapeBtn.addEventListener("click", () => {
+      if (polygon.length >= 3 && !shapeClosed) {
+        shapeClosed = true;
+        updateStatus();
+        redraw();
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      polygon = [];
+      folds = [];
+      shapeClosed = false;
+      dragStart = null;
+      isMouseDown = false;
+      foldInstructionsEl.textContent = "Cleared. Draw a new shape by clicking on the paper.";
+      updateStatus();
+      redraw();
+    });
+
+    // ===============================
+    // "Auto" fold demo (simple, not theorem-complete)
+    // ===============================
+    autoFoldBtn.addEventListener("click", () => {
+      if (!polygon.length || !shapeClosed) {
+        foldInstructionsEl.textContent =
+          "Draw and close a shape first, then I can suggest a simple central fold line (demo).";
+        return;
+      }
+
+      // Simple approach:
+      // 1. Compute polygon bounding box.
+      // 2. Place a vertical or horizontal fold through its center.
+      // This is NOT a full fold-and-cut theorem solution, just an illustrative axis.
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const p of polygon) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      folds = []; // Replace previous folds for clarity
+      if (width >= height) {
+        // vertical fold at center
+        const cx = (minX + maxX) / 2;
+        folds.push({
+          p1: { x: cx, y: 0 },
+          p2: { x: cx, y: canvas.height }
+        });
+        foldInstructionsEl.textContent =
+          "Demo fold generated: vertical axis through the shape's center.\n\n" +
+          "Physical instructions:\n" +
+          "1. Fold the paper along the red dashed vertical line so that both sides overlap.\n" +
+          "2. Imagine aligning the two halves of the blue shape.\n" +
+          "3. Choose a straight cut line intersecting the overlapped shape region.\n\n" +
+          "Note: A truly theorem-accurate one-cut pattern would require a more complex crease design, " +
+          "which can be implemented on top of this UI.";
+      } else {
+        // horizontal fold at center
+        const cy = (minY + maxY) / 2;
+        folds.push({
+          p1: { x: 0, y: cy },
+          p2: { x: canvas.width, y: cy }
+        });
+        foldInstructionsEl.textContent =
+          "Demo fold generated: horizontal axis through the shape's center.\n\n" +
+          "Physical instructions:\n" +
+          "1. Fold the paper along the red dashed horizontal line.\n" +
+          "2. Align both halves of the blue shape.\n" +
+          "3. Perform a single straight cut intersecting the overlapped shape region.\n\n" +
+          "Reminder: This is a simplified illustration, not the full fold-and-cut algorithm.";
+      }
+
+      updateStatus();
+      redraw();
+    });
+
+    // ===============================
+    // Export helpers
+    // ===============================
+    function downloadDataURL(dataURL, filename) {
+      const a = document.createElement("a");
+      a.href = dataURL;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    exportPngBtn.addEventListener("click", () => {
+      const pngData = canvas.toDataURL("image/png");
+      downloadDataURL(pngData, "fold-and-cut.png");
+    });
+
+    exportSvgBtn.addEventListener("click", () => {
+      const svg = buildSvgString();
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "fold-and-cut.svg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    function buildSvgString() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      function esc(num) {
+        return Number(num.toFixed(2));
+      }
+
+      let svg = "";
+      svg += `<?xml version="1.0" encoding="UTF-8"?>\n`;
+      svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n`;
+      svg += `  <rect x="0" y="0" width="${w}" height="${h}" fill="#f9fafb" />\n`;
+
+      // Polygon
+      if (polygon.length >= 2) {
+        const pts = polygon.map(p => `${esc(p.x)},${esc(p.y)}`).join(" ");
+        // fill shape if closed
+        if (shapeClosed && polygon.length >= 3) {
+          svg += `  <polygon points="${pts}" fill="rgba(37,99,235,0.12)" stroke="#1d4ed8" stroke-width="2" />\n`;
+        } else {
+          svg += `  <polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2" />\n`;
+        }
+
+        // Vertices
+        for (const p of polygon) {
+          svg += `  <circle cx="${esc(p.x)}" cy="${esc(p.y)}" r="3" fill="#111827" />\n`;
+        }
+      }
+
+      // Fold lines
+      for (const f of folds) {
+        svg += `  <line x1="${esc(f.p1.x)}" y1="${esc(f.p1.y)}" x2="${esc(f.p2.x)}" y2="${esc(f.p2.y)}" `;
+        svg += `stroke="#b91c1c" stroke-width="1.5" stroke-dasharray="6 4" />\n`;
+      }
+
+      svg += `</svg>\n`;
+      return svg;
+    }
+
+    printBtn.addEventListener("click", () => {
+      // Use browser's print dialog; user can choose "Save as PDF"
+      const dataURL = canvas.toDataURL("image/png");
+      const win = window.open("", "_blank");
+      if (!win) return;
+      win.document.write(`
+        <html>
+          <head>
+            <title>Fold-and-Cut Print</title>
+            <style>
+              body {
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #ffffff;
+              }
+              img {
+                max-width: 100%;
+                max-height: 100vh;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${dataURL}" onload="window.print()" />
+          </body>
+        </html>
+      `);
+      win.document.close();
+    });
+
+    // Initial draw
+    updateStatus();
+    redraw();
+  </script>
+</body>
+</html>

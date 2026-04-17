@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Voxel Automata • KYURIOUS LABS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.85);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #00ffcc;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding-top: 60px;
+            margin: 0;
+            background: #000;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* NAV */
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 97%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+            color: var(--text);
+        }
+
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        .nav-center {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* HERO HEADER - left aligned below nav */
+        .hero-header {
+            position: fixed;
+            top: 72px;
+            left: 24px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .hero-header .realm-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            opacity: 0.9;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .hero-header h1 {
+            font-size: clamp(1.4rem, 4vw, 2.4rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.05;
+            color: #fff;
+        }
+
+        .hero-header p {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.45);
+            margin-top: 6px;
+            font-weight: 400;
+            letter-spacing: 0.6px;
+            max-width: 260px;
+        }
+
+        /* CANVAS */
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* CONTROLS PANEL - glassmorphic, mobile friendly */
+        .controls-panel {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--nav-border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            width: 290px;
+            max-width: calc(100vw - 48px);
+            z-index: 200;
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0, 255, 204, 0.15);
+            font-size: 0.85rem;
+        }
+
+        .controls-panel h3 {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .controls-panel h3::before {
+            content: "⬡";
+            font-size: 1rem;
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .button-row button {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .button-row button:hover {
+            background: var(--accent);
+            color: #000;
+            transform: translateY(-1px);
+        }
+
+        .button-row button:active {
+            transform: scale(0.95);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .control-row label {
+            min-width: 78px;
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+        }
+
+        .value {
+            font-family: monospace;
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        select {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            flex: 1;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(10,10,10,0.7);
+            color: rgba(255,255,255,0.6);
+            font-size: 0.65rem;
+            padding: 8px 14px;
+            border-radius: 9999px;
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            max-width: 180px;
+        }
+
+        @media (max-width: 640px) {
+            .controls-panel {
+                bottom: 16px;
+                left: 16px;
+                width: calc(100vw - 32px);
+                padding: 16px;
+            }
+            .hero-header {
+                left: 18px;
+                top: 70px;
+            }
+            .hero-header h1 {
+                font-size: clamp(1.3rem, 5vw, 2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV BAR -->
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span>
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+       
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+       
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text">VOXEL CORE ACTIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO HEADER - left aligned below nav -->
+    <div class="hero-header">
+        <div class="realm-tag">⬡ THE CHAOS REALM</div>
+        <h1>Voxel<br>Automata</h1>
+        <p>3D Game of Life • Crystal gliders, pulsating lungs &amp; alien spaceships</p>
+    </div>
+
+    <!-- CONTROLS PANEL -->
+    <div class="controls-panel" id="controls">
+        <h3>3D CELLULAR AUTOMATA</h3>
+        
+        <div class="button-row">
+            <button id="playPauseBtn">⏸️ PAUSE</button>
+            <button id="stepBtn">STEP ▶</button>
+            <button id="randomBtn">🌌 RANDOM SEED</button>
+            <button id="clearBtn">🧼 CLEAR</button>
+        </div>
+
+        <div class="control-row">
+            <label>SPEED</label>
+            <input type="range" id="speedSlider" min="1" max="30" value="12" step="1">
+            <span class="value" id="speedValue">12</span>
+        </div>
+
+        <div class="control-row">
+            <label>PRESET</label>
+            <select id="presetSelect">
+                <option value="445">445 — Crystal Formations</option>
+                <option value="growth">GROWTH — Expanding Crystals</option>
+                <option value="pulse">PULSE — Breathing Lungs</option>
+                <option value="glider">GLIDER — Spaceship Swarm</option>
+            </select>
+        </div>
+
+        <!-- Advanced rules (collapsible for mobile) -->
+        <details style="margin-top: 12px;">
+            <summary style="font-size:0.75rem; opacity:0.7; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <span>ADVANCED RULE SET</span>
+            </summary>
+            <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <div style="font-size:0.7rem; opacity:0.6;">BIRTH</div>
+                    <div class="control-row" style="margin:0; gap:8px;">
+                        <input type="range" id="birthMinSlider" min="0" max="26" value="4">
+                        <span class="value" id="birthMinVal" style="font-size:0.75rem;">4</span>
+                        <span style="opacity:0.4;">—</span>
+                        <input type="range" id="birthMaxSlider" min="0" max="26" value="5">
+                        <span class="value" id="birthMaxVal" style="font-size:0.75rem;">5</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem; opacity:0.6;">SURVIVE</div>
+                    <div class="control-row" style="margin:0; gap:8px;">
+                        <input type="range" id="surviveMinSlider" min="0" max="26" value="4">
+                        <span class="value" id="surviveMinVal" style="font-size:0.75rem;">4</span>
+                        <span style="opacity:0.4;">—</span>
+                        <input type="range" id="surviveMaxSlider" min="0" max="26" value="5">
+                        <span class="value" id="surviveMaxVal" style="font-size:0.75rem;">5</span>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="stats">
+            <div>GENERATION <span id="generationDisplay" style="font-family:monospace;color:var(--accent);">0</span></div>
+            <div>LIVE CELLS <span id="liveCountDisplay" style="font-family:monospace;color:var(--accent);">0</span></div>
+            <div id="fpsDisplay">— fps</div>
+        </div>
+    </div>
+
+    <!-- TOUCH / MOUSE HINT -->
+    <div class="hint" id="hint">
+        <span>DRAG TO ROTATE</span>
+        <span style="width:1px;height:12px;background:rgba(255,255,255,0.3);"></span>
+        <span>SCROLL TO ZOOM</span>
+    </div>
+
+    <script>
+        // ====================== THREE.JS VOXEL AUTOMATA ======================
+        let scene, camera, renderer;
+        let instancedMesh;
+        let gridSize = 24;
+        let grid, nextGrid;
+        let generation = 0;
+        let running = true;
+        let lastUpdateTime = 0;
+        let updateDelay = 80; // ms (controlled by slider)
+
+        // Rule parameters (default = 445 rule)
+        let birthMin = 4;
+        let birthMax = 5;
+        let surviveMin = 4;
+        let surviveMax = 5;
+
+        // Camera orbit
+        let azimuth = Math.PI * 0.8;
+        let elevation = Math.PI * 0.4;
+        let distance = gridSize * 2.2;
+        let isDragging = false;
+        let prevMouseX = 0;
+        let prevMouseY = 0;
+        let prevTouchX = 0;
+        let prevTouchY = 0;
+
+        // Performance
+        let fps = 0;
+        let frameCount = 0;
+        let lastFPSUpdate = Date.now();
+
+        const presets = {
+            "445": { birthMin: 4, birthMax: 5, surviveMin: 4, surviveMax: 5 },
+            "growth": { birthMin: 5, birthMax: 7, surviveMin: 4, surviveMax: 6 },
+            "pulse": { birthMin: 4, birthMax: 6, surviveMin: 5, surviveMax: 7 },
+            "glider": { birthMin: 3, birthMax: 5, surviveMin: 4, surviveMax: 6 }
+        };
+
+        function getIndex(x, y, z) {
+            return x + y * gridSize + z * gridSize * gridSize;
+        }
+
+        function countNeighbors(x, y, z) {
+            let count = 0;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        if (dx === 0 && dy === 0 && dz === 0) continue;
+                        const nx = (x + dx + gridSize) % gridSize;
+                        const ny = (y + dy + gridSize) % gridSize;
+                        const nz = (z + dz + gridSize) % gridSize;
+                        count += grid[getIndex(nx, ny, nz)];
+                    }
+                }
+            }
+            return count;
+        }
+
+        function simulate() {
+            nextGrid.fill(0);
+
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    for (let z = 0; z < gridSize; z++) {
+                        const idx = getIndex(x, y, z);
+                        const neighbors = countNeighbors(x, y, z);
+                        const alive = grid[idx] === 1;
+
+                        if (alive) {
+                            if (neighbors >= surviveMin && neighbors <= surviveMax) {
+                                nextGrid[idx] = 1;
+                            }
+                        } else {
+                            if (neighbors >= birthMin && neighbors <= birthMax) {
+                                nextGrid[idx] = 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Swap grids
+            const temp = grid;
+            grid = nextGrid;
+            nextGrid = temp;
+
+            generation++;
+            updateVoxels();
+            updateStats();
+        }
+
+        function updateVoxels() {
+            const dummy = new THREE.Object3D();
+            let liveCount = 0;
+
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    for (let z = 0; z < gridSize; z++) {
+                        if (grid[getIndex(x, y, z)] === 1) {
+                            dummy.position.set(
+                                x - gridSize / 2,
+                                y - gridSize / 2,
+                                z - gridSize / 2
+                            );
+                            dummy.updateMatrix();
+                            instancedMesh.setMatrixAt(liveCount, dummy.matrix);
+                            liveCount++;
+                        }
+                    }
+                }
+            }
+
+            instancedMesh.count = liveCount;
+            instancedMesh.instanceMatrix.needsUpdate = true;
+        }
+
+        function randomizeSeed() {
+            grid.fill(0);
+            const targetLive = Math.floor(gridSize * gridSize * gridSize * 0.13);
+            for (let i = 0; i < targetLive; i++) {
+                const x = Math.floor(Math.random() * gridSize);
+                const y = Math.floor(Math.random() * gridSize);
+                const z = Math.floor(Math.random() * gridSize);
+                grid[getIndex(x, y, z)] = 1;
+            }
+            generation = 0;
+            updateVoxels();
+            updateStats();
+        }
+
+        function clearGrid() {
+            grid.fill(0);
+            nextGrid.fill(0);
+            generation = 0;
+            updateVoxels();
+            updateStats();
+        }
+
+        function updateCamera() {
+            const x = distance * Math.sin(elevation) * Math.cos(azimuth);
+            const z = distance * Math.sin(elevation) * Math.sin(azimuth);
+            const y = distance * Math.cos(elevation);
+            camera.position.set(x, y, z);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function initThree() {
+            const canvas = document.createElement('canvas');
+            document.body.appendChild(canvas);
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                alpha: false
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = false;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+            updateCamera();
+
+            // Lights - gives voxels beautiful 3D depth
+            const ambient = new THREE.AmbientLight(0xaaaaaa, 0.7);
+            scene.add(ambient);
+
+            const dirLight1 = new THREE.DirectionalLight(0x00ffcc, 1.2);
+            dirLight1.position.set(15, 25, 20);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0xff00cc, 0.6);
+            dirLight2.position.set(-20, -15, -25);
+            scene.add(dirLight2);
+
+            // Voxel geometry + material (slightly inset for true voxel gaps)
+            const geometry = new THREE.BoxGeometry(0.92, 0.92, 0.92);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00ffcc,
+                emissive: 0x008866,
+                shininess: 8,
+                flatShading: true,
+                transparent: false
+            });
+
+            const maxInstances = gridSize * gridSize * gridSize;
+            instancedMesh = new THREE.InstancedMesh(geometry, material, maxInstances);
+            instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            scene.add(instancedMesh);
+
+            // Grid arrays
+            grid = new Uint8Array(gridSize * gridSize * gridSize);
+            nextGrid = new Uint8Array(gridSize * gridSize * gridSize);
+
+            // Initial seed - beautiful chaotic start
+            randomizeSeed();
+
+            // Event listeners
+            window.addEventListener('resize', onResize);
+
+            // Mouse controls
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0) {
+                    isDragging = true;
+                    prevMouseX = e.clientX;
+                    prevMouseY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = (e.clientX - prevMouseX) * 0.005;
+                const deltaY = (e.clientY - prevMouseY) * 0.005;
+                azimuth += deltaX;
+                elevation = Math.max(0.1, Math.min(Math.PI - 0.1, elevation - deltaY));
+                prevMouseX = e.clientX;
+                prevMouseY = e.clientY;
+                updateCamera();
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            window.addEventListener('mouseleave', () => { isDragging = false; });
+
+            // Wheel zoom
+            canvas.addEventListener('wheel', (e) => {
+                distance = Math.max(gridSize * 1.2, Math.min(gridSize * 4, distance + e.deltaY * 0.08));
+                updateCamera();
+            });
+
+            // Touch controls (mobile)
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    prevTouchX = e.touches[0].clientX;
+                    prevTouchY = e.touches[0].clientY;
+                }
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaX = (e.touches[0].clientX - prevTouchX) * 0.006;
+                const deltaY = (e.touches[0].clientY - prevTouchY) * 0.006;
+                azimuth += deltaX;
+                elevation = Math.max(0.1, Math.min(Math.PI - 0.1, elevation - deltaY));
+                prevTouchX = e.touches[0].clientX;
+                prevTouchY = e.touches[0].clientY;
+                updateCamera();
+                e.preventDefault();
+            });
+
+            canvas.addEventListener('touchend', () => { isDragging = false; });
+
+            console.log('%c✅ Voxel Automata ready — 3D Game of Life with 445 rule & custom presets', 'color:#00ffcc;font-family:monospace');
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updateStats() {
+            document.getElementById('generationDisplay').textContent = generation;
+            
+            // Count live cells
+            let live = 0;
+            for (let i = 0; i < grid.length; i++) if (grid[i] === 1) live++;
+            document.getElementById('liveCountDisplay').textContent = live;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = Date.now();
+
+            // Simulation tick
+            if (running && now - lastUpdateTime > updateDelay) {
+                simulate();
+                lastUpdateTime = now;
+            }
+
+            // Gentle auto-rotation when not dragging (subtle breathing motion)
+            if (!isDragging) {
+                azimuth += 0.0008;
+                updateCamera();
+            }
+
+            // FPS counter
+            frameCount++;
+            if (now - lastFPSUpdate > 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFPSUpdate = now;
+                document.getElementById('fpsDisplay').textContent = fps + ' fps';
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ====================== UI BINDINGS ======================
+        function bindUI() {
+            // Play / Pause
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            playPauseBtn.addEventListener('click', () => {
+                running = !running;
+                playPauseBtn.innerHTML = running ? '⏸️ PAUSE' : '▶️ PLAY';
+            });
+
+            // Step
+            document.getElementById('stepBtn').addEventListener('click', () => {
+                if (!running) simulate();
+                else {
+                    running = false;
+                    simulate();
+                    playPauseBtn.innerHTML = '▶️ PLAY';
+                }
+            });
+
+            // Random seed
+            document.getElementById('randomBtn').addEventListener('click', randomizeSeed);
+
+            // Clear
+            document.getElementById('clearBtn').addEventListener('click', clearGrid);
+
+            // Speed slider
+            const speedSlider = document.getElementById('speedSlider');
+            const speedValue = document.getElementById('speedValue');
+            speedSlider.addEventListener('input', () => {
+                updateDelay = Math.max(20, 600 - speedSlider.value * 19);
+                speedValue.textContent = speedSlider.value;
+            });
+
+            // Preset select
+            const presetSelect = document.getElementById('presetSelect');
+            presetSelect.addEventListener('change', () => {
+                const rule = presets[presetSelect.value];
+                if (rule) {
+                    birthMin = rule.birthMin;
+                    birthMax = rule.birthMax;
+                    surviveMin = rule.surviveMin;
+                    surviveMax = rule.surviveMax;
+
+                    // Sync advanced sliders
+                    document.getElementById('birthMinSlider').value = birthMin;
+                    document.getElementById('birthMaxSlider').value = birthMax;
+                    document.getElementById('surviveMinSlider').value = surviveMin;
+                    document.getElementById('surviveMaxSlider').value = surviveMax;
+
+                    document.getElementById('birthMinVal').textContent = birthMin;
+                    document.getElementById('birthMaxVal').textContent = birthMax;
+                    document.getElementById('surviveMinVal').textContent = surviveMin;
+                    document.getElementById('surviveMaxVal').textContent = surviveMax;
+                }
+            });
+
+            // Advanced sliders - live update
+            const bindRange = (id, targetVar, displayId) => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', () => {
+                    window[targetVar] = parseInt(el.value);
+                    if (displayId) document.getElementById(displayId).textContent = el.value;
+                });
+            };
+
+            bindRange('birthMinSlider', 'birthMin', 'birthMinVal');
+            bindRange('birthMaxSlider', 'birthMax', 'birthMaxVal');
+            bindRange('surviveMinSlider', 'surviveMin', 'surviveMinVal');
+            bindRange('surviveMaxSlider', 'surviveMax', 'surviveMaxVal');
+        }
+
+        // ====================== START ======================
+        window.onload = () => {
+            initThree();
+            bindUI();
+            animate();
+            
+            // Console signature
+            console.log('%cVoxel Automata 3D built live for you — enjoy the chaos ✨', 'color:#00ffcc; font-size:11px');
+        };
+    </script>
+</body>
+</html>

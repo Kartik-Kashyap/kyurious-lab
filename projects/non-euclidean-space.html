@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KYURIOUS LABS • Non-Euclidean Space</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <style>
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.8);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #00ffcc;
+            --text: #ffffff;
+        }
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 97%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            font-family: 'Inter', system-ui, sans-serif;
+            letter-spacing: 1px;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+        .back-link:hover {
+            opacity: 1;
+            color: var(--text);
+        }
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        body {
+            padding-top: 60px;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        .hero-header {
+            position: fixed;
+            top: 72px;
+            left: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .hero-header .realm-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            opacity: 0.8;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .hero-header h1 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: #fff;
+        }
+        .hero-header p {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            max-width: 240px;
+        }
+        canvas {
+            display: block;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            z-index: 1;
+        }
+        .control-panel {
+            position: fixed;
+            top: 72px;
+            right: 20px;
+            z-index: 200;
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 18px 20px;
+            width: 240px;
+            color: #fff;
+            font-size: 0.75rem;
+            box-shadow: 0 8px 32px rgba(0, 255, 204, 0.1);
+        }
+        .control-panel h2 {
+            margin: 0 0 12px 0;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .control-group {
+            margin-bottom: 16px;
+        }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+        .value {
+            font-family: monospace;
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn {
+            flex: 1;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .btn:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 200;
+            background: rgba(10,10,10,0.8);
+            backdrop-filter: blur(12px);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(0,255,204,0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- NAV -->
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span>
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+      
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+      
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text">SYSTEM ACTIVE • NON-EUCLIDEAN</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO HEADER -->
+    <div class="hero-header">
+        <div class="realm-tag">⬡ THE IMPOSSIBLE REALM</div>
+        <h1>NON-EUCLIDEAN<br>SPACE</h1>
+        <p>The Box That Contains Infinity</p>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="control-panel">
+        <h2>REALM PARAMETERS</h2>
+        
+        <div class="control-group">
+            <label>BOX SCALE <span class="value" id="val-box">1.00</span></label>
+            <input type="range" id="boxScale" min="0.4" max="2.5" step="0.05" value="1">
+        </div>
+        
+        <div class="control-group">
+            <label>PORTAL GLOW <span class="value" id="val-glow">0.8</span></label>
+            <input type="range" id="portalGlow" min="0" max="2" step="0.1" value="0.8">
+        </div>
+        
+        <div class="control-group">
+            <label>INNER CHAOS <span class="value" id="val-chaos">1.2</span></label>
+            <input type="range" id="innerChaos" min="0.5" max="3" step="0.1" value="1.2">
+        </div>
+        
+        <div class="control-group">
+            <label>ROOM SCALE <span class="value" id="val-room">50</span></label>
+            <input type="range" id="roomScale" min="30" max="80" step="5" value="50">
+        </div>
+        
+        <div class="button-row">
+            <div class="btn" id="btnEnter">ENTER THE BOX</div>
+            <div class="btn" id="btnExit" style="display:none;">EXIT TO TABLE</div>
+        </div>
+        
+        <div style="margin-top:16px; font-size:0.65rem; opacity:0.5; line-height:1.3;">
+            Orbit to inspect • Move inside to feel the paradox<br>
+            Mobile: drag + pinch • Desktop: drag + scroll
+        </div>
+    </div>
+
+    <!-- BOTTOM STATUS -->
+    <div class="status-bar">
+        <span style="color:#00ffcc;">∞</span>
+        STENCIL PORTAL ACTIVE • 4× TURN = NO RETURN
+        <span style="color:#00ffcc;">∞</span>
+    </div>
+
+    <script>
+        // =============================================
+        // THREE.JS NON-EUCLIDEAN IMPOSSIBLE ROOM DEMO
+        // Single-file, mobile-ready, fully interactive
+        // =============================================
+
+        let sceneOuter, sceneInner, camera, renderer
+        let boxGroup, portalPlane, portalMaterial, renderTarget
+        let portalCamera
+        let isInside = false
+        let controlsEnabled = true
+
+        // Simple spherical orbit controller (works on desktop + mobile)
+        class SimpleOrbitControls {
+            constructor(camera, domElement, target) {
+                this.camera = camera
+                this.domElement = domElement
+                this.target = target
+                this.radius = 9
+                this.phi = Math.PI * 0.45   // vertical angle
+                this.theta = Math.PI * 0.3  // horizontal angle
+                this.minPhi = 0.1
+                this.maxPhi = Math.PI - 0.1
+                this.isDragging = false
+                this.prevX = 0
+                this.prevY = 0
+                this.touchDistance = 0
+
+                this.domElement.addEventListener('mousedown', e => this.onMouseDown(e))
+                window.addEventListener('mouseup', () => this.isDragging = false)
+                window.addEventListener('mousemove', e => this.onMouseMove(e))
+                this.domElement.addEventListener('wheel', e => this.onWheel(e))
+
+                // Touch support
+                this.domElement.addEventListener('touchstart', e => this.onTouchStart(e))
+                window.addEventListener('touchend', () => { this.isDragging = false })
+                window.addEventListener('touchmove', e => this.onTouchMove(e))
+            }
+
+            update() {
+                const x = this.radius * Math.sin(this.phi) * Math.cos(this.theta)
+                const z = this.radius * Math.sin(this.phi) * Math.sin(this.theta)
+                const y = this.radius * Math.cos(this.phi)
+                this.camera.position.set(
+                    this.target.x + x,
+                    this.target.y + y,
+                    this.target.z + z
+                )
+                this.camera.lookAt(this.target)
+            }
+
+            onMouseDown(e) {
+                if (!controlsEnabled) return
+                this.isDragging = true
+                this.prevX = e.clientX
+                this.prevY = e.clientY
+            }
+
+            onMouseMove(e) {
+                if (!this.isDragging || !controlsEnabled) return
+                const dx = (e.clientX - this.prevX) * 0.004
+                const dy = (e.clientY - this.prevY) * 0.004
+                this.theta += dx
+                this.phi = Math.max(this.minPhi, Math.min(this.maxPhi, this.phi + dy))
+                this.prevX = e.clientX
+                this.prevY = e.clientY
+                this.update()
+            }
+
+            onWheel(e) {
+                if (!controlsEnabled) return
+                this.radius = Math.max(3, Math.min(20, this.radius + e.deltaY * 0.008))
+                this.update()
+            }
+
+            onTouchStart(e) {
+                if (!controlsEnabled) return
+                if (e.touches.length === 1) {
+                    this.isDragging = true
+                    this.prevX = e.touches[0].clientX
+                    this.prevY = e.touches[0].clientY
+                } else if (e.touches.length === 2) {
+                    this.touchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    )
+                }
+            }
+
+            onTouchMove(e) {
+                if (!controlsEnabled) return
+                if (e.touches.length === 1 && this.isDragging) {
+                    const dx = (e.touches[0].clientX - this.prevX) * 0.006
+                    const dy = (e.touches[0].clientY - this.prevY) * 0.006
+                    this.theta += dx
+                    this.phi = Math.max(this.minPhi, Math.min(this.maxPhi, this.phi + dy))
+                    this.prevX = e.touches[0].clientX
+                    this.prevY = e.touches[0].clientY
+                    this.update()
+                } else if (e.touches.length === 2) {
+                    const newDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    )
+                    const zoomDelta = (this.touchDistance - newDist) * 0.04
+                    this.radius = Math.max(3, Math.min(20, this.radius + zoomDelta))
+                    this.touchDistance = newDist
+                    this.update()
+                }
+            }
+        }
+
+        function init() {
+            const canvas = document.createElement('canvas')
+            document.body.appendChild(canvas)
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                antialias: true,
+                stencil: true,
+                alpha: false
+            })
+            renderer.setSize(window.innerWidth, window.innerHeight - 60)
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+            renderer.shadowMap.enabled = false
+            renderer.autoClear = false
+
+            // OUTER SCENE (table + small box)
+            sceneOuter = new THREE.Scene()
+            sceneOuter.background = new THREE.Color(0x0a0a0a)
+
+            // INNER SCENE (massive impossible room)
+            sceneInner = new THREE.Scene()
+            sceneInner.background = new THREE.Color(0x111122)
+
+            // CAMERA
+            camera = new THREE.PerspectiveCamera(68, window.innerWidth / (window.innerHeight - 60), 0.1, 200)
+            camera.position.set(0, 4, 9)
+
+            // LIGHTS - OUTER
+            sceneOuter.add(new THREE.AmbientLight(0xffffff, 0.6))
+            const dirLight = new THREE.DirectionalLight(0x00ffcc, 1.4)
+            dirLight.position.set(8, 12, 6)
+            sceneOuter.add(dirLight)
+
+            // TABLE
+            const tableMat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 10 })
+            const tableTop = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), tableMat)
+            tableTop.rotation.x = -Math.PI * 0.5
+            tableTop.position.y = 0.01
+            sceneOuter.add(tableTop)
+
+            // Table legs
+            const legMat = new THREE.MeshPhongMaterial({ color: 0x111111 })
+            const legGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.2, 16)
+            const positions = [[-5, 0, -5], [5, 0, -5], [-5, 0, 5], [5, 0, 5]]
+            positions.forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, legMat)
+                leg.position.set(...pos)
+                leg.position.y = 1.1
+                sceneOuter.add(leg)
+            })
+
+            // SMALL BOX GROUP
+            boxGroup = new THREE.Group()
+            boxGroup.position.set(0, 2.2, 0)
+            sceneOuter.add(boxGroup)
+
+            const boxSize = 2
+            const wallMat = new THREE.MeshPhongMaterial({
+                color: 0x00ffcc,
+                emissive: 0x00ffcc,
+                emissiveIntensity: 0.3,
+                shininess: 30,
+                side: THREE.DoubleSide
+            })
+
+            // 5 walls (no front)
+            const wallGeo = new THREE.PlaneGeometry(boxSize, boxSize)
+            
+            // Back
+            const back = new THREE.Mesh(wallGeo, wallMat)
+            back.position.z = -boxSize / 2
+            back.rotation.y = Math.PI
+            boxGroup.add(back)
+            
+            // Left
+            const left = new THREE.Mesh(wallGeo, wallMat)
+            left.position.x = -boxSize / 2
+            left.rotation.y = Math.PI / 2
+            boxGroup.add(left)
+            
+            // Right
+            const right = left.clone()
+            right.position.x = boxSize / 2
+            right.rotation.y = -Math.PI / 2
+            boxGroup.add(right)
+            
+            // Top
+            const top = new THREE.Mesh(wallGeo, wallMat)
+            top.position.y = boxSize / 2
+            top.rotation.x = Math.PI / 2
+            boxGroup.add(top)
+            
+            // Bottom
+            const bottom = top.clone()
+            bottom.position.y = -boxSize / 2
+            bottom.rotation.x = -Math.PI / 2
+            boxGroup.add(bottom)
+
+            // PORTAL (front face)
+            renderTarget = new THREE.WebGLRenderTarget(1024, 1024, { format: THREE.RGBFormat })
+            portalMaterial = new THREE.MeshBasicMaterial({
+                map: renderTarget.texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 1
+            })
+            portalPlane = new THREE.Mesh(new THREE.PlaneGeometry(boxSize, boxSize), portalMaterial)
+            portalPlane.position.z = boxSize / 2 + 0.001
+            boxGroup.add(portalPlane)
+
+            // INNER SCENE SETUP
+            const innerRoomSize = 50
+            const roomMat = new THREE.MeshPhongMaterial({
+                color: 0x112233,
+                emissive: 0x001122,
+                side: THREE.BackSide,
+                shininess: 5
+            })
+            const innerRoom = new THREE.Mesh(
+                new THREE.BoxGeometry(innerRoomSize, innerRoomSize, innerRoomSize),
+                roomMat
+            )
+            sceneInner.add(innerRoom)
+
+            // Massive grid floor (to show impossible scale)
+            const grid = new THREE.GridHelper(innerRoomSize * 1.8, 40, 0x00ffcc, 0x00ff88)
+            grid.position.y = -innerRoomSize / 2 + 0.02
+            sceneInner.add(grid)
+
+            // Extra depth grids (non-Euclidean illusion)
+            const grid2 = grid.clone()
+            grid2.position.z = -innerRoomSize * 0.4
+            grid2.rotation.x = Math.PI * 0.1
+            sceneInner.add(grid2)
+
+            // Floating impossible objects (spheres that break perspective)
+            const orbMat = new THREE.MeshPhongMaterial({
+                color: 0xff00cc,
+                emissive: 0xff00aa,
+                emissiveIntensity: 1.5,
+                shininess: 100
+            })
+            for (let i = 0; i < 28; i++) {
+                const size = 0.6 + Math.random() * 2.4
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(size, 32, 32), orbMat)
+                orb.position.set(
+                    (Math.random() - 0.5) * innerRoomSize * 0.92,
+                    (Math.random() - 0.5) * innerRoomSize * 0.7 + innerRoomSize * 0.3,
+                    (Math.random() - 0.5) * innerRoomSize * 0.92
+                )
+                // Random slow rotation speed
+                orb.userData = { rotSpeed: (Math.random() - 0.5) * 0.03 }
+                sceneInner.add(orb)
+            }
+
+            // Inner lighting (feels infinite)
+            const innerPoint = new THREE.PointLight(0x00ffcc, 3, 0)
+            innerPoint.position.set(0, 8, 0)
+            sceneInner.add(innerPoint)
+            sceneInner.add(new THREE.AmbientLight(0x6688ff, 0.4))
+
+            // Portal camera (looks into the massive room)
+            portalCamera = new THREE.PerspectiveCamera(68, 1, 0.1, 300)
+            portalCamera.position.set(0, 12, -18)   // positioned "just inside" the portal
+            portalCamera.lookAt(4, 8, 12)
+
+            // Controls
+            const orbitTarget = new THREE.Vector3(0, 2.2, 0)
+            const controls = new SimpleOrbitControls(camera, renderer.domElement, orbitTarget)
+            controls.update()
+
+            // UI listeners
+            setupUI(controls)
+
+            // Resize
+            window.addEventListener('resize', () => {
+                const h = window.innerHeight - 60
+                camera.aspect = window.innerWidth / h
+                camera.updateProjectionMatrix()
+                renderer.setSize(window.innerWidth, h)
+            })
+
+            // Animation loop
+            animate(controls)
+        }
+
+        function setupUI(controls) {
+            // Box scale
+            const boxSlider = document.getElementById('boxScale')
+            const valBox = document.getElementById('val-box')
+            boxSlider.addEventListener('input', () => {
+                const s = parseFloat(boxSlider.value)
+                valBox.textContent = s.toFixed(2)
+                boxGroup.scale.setScalar(s)
+            })
+
+            // Portal glow (emissive on walls + portal opacity)
+            const glowSlider = document.getElementById('portalGlow')
+            const valGlow = document.getElementById('val-glow')
+            glowSlider.addEventListener('input', () => {
+                const g = parseFloat(glowSlider.value)
+                valGlow.textContent = g.toFixed(1)
+                // Dynamic glow on box walls
+                boxGroup.children.forEach(child => {
+                    if (child.material && child.material.emissive) {
+                        child.material.emissiveIntensity = g
+                    }
+                })
+                portalMaterial.opacity = Math.max(0.6, g)
+            })
+
+            // Inner chaos (orb rotation speed multiplier)
+            const chaosSlider = document.getElementById('innerChaos')
+            const valChaos = document.getElementById('val-chaos')
+            chaosSlider.addEventListener('input', () => {
+                const c = parseFloat(chaosSlider.value)
+                valChaos.textContent = c.toFixed(1)
+            })
+
+            // Room scale (live resize inner room)
+            let currentRoomScale = 50
+            const roomSlider = document.getElementById('roomScale')
+            const valRoom = document.getElementById('val-room')
+            roomSlider.addEventListener('input', () => {
+                const s = parseFloat(roomSlider.value)
+                valRoom.textContent = s
+                currentRoomScale = s
+                // We will apply it in the animate loop
+            })
+
+            // Enter / Exit buttons
+            const btnEnter = document.getElementById('btnEnter')
+            const btnExit = document.getElementById('btnExit')
+
+            btnEnter.addEventListener('click', () => {
+                enterTheBox(controls)
+            })
+
+            btnExit.addEventListener('click', () => {
+                exitTheBox(controls)
+            })
+        }
+
+        function enterTheBox(controls) {
+            isInside = true
+            controlsEnabled = false
+            document.getElementById('btnEnter').style.display = 'none'
+            document.getElementById('btnExit').style.display = 'block'
+
+            // Animate camera smoothly into the portal
+            const startPos = camera.position.clone()
+            const targetPos = new THREE.Vector3(0, 3.5, 2.8) // just inside the box
+            const duration = 1600
+            const startTime = Date.now()
+
+            function animIn() {
+                const elapsed = Date.now() - startTime
+                const t = Math.min(elapsed / duration, 1)
+                const ease = 1 - Math.pow(1 - t, 3)
+                
+                camera.position.lerpVectors(startPos, targetPos, ease)
+                camera.lookAt(0, 2.2, 0)
+                
+                if (t < 1) {
+                    requestAnimationFrame(animIn)
+                } else {
+                    // Now fully inside - switch to inner scene
+                    camera.position.set(0, 12, -18)
+                    camera.lookAt(4, 8, 12)
+                    controlsEnabled = true
+                    // Reuse the same controls but now target the inner center
+                    controls.target = new THREE.Vector3(0, 8, 0)
+                    controls.radius = 35
+                    controls.phi = Math.PI * 0.4
+                    controls.theta = Math.PI * 1.8
+                    controls.update()
+                }
+            }
+            animIn()
+        }
+
+        function exitTheBox(controls) {
+            isInside = false
+            controlsEnabled = false
+            document.getElementById('btnEnter').style.display = 'block'
+            document.getElementById('btnExit').style.display = 'none'
+
+            // Animate back to outside view
+            const startPos = camera.position.clone()
+            const targetPos = new THREE.Vector3(0, 4, 9)
+            const duration = 1400
+            const startTime = Date.now()
+
+            function animOut() {
+                const elapsed = Date.now() - startTime
+                const t = Math.min(elapsed / duration, 1)
+                const ease = 1 - Math.pow(1 - t, 3)
+                
+                camera.position.lerpVectors(startPos, targetPos, ease)
+                camera.lookAt(0, 2.2, 0)
+                
+                if (t < 1) {
+                    requestAnimationFrame(animOut)
+                } else {
+                    controlsEnabled = true
+                    controls.target = new THREE.Vector3(0, 2.2, 0)
+                    controls.radius = 9
+                    controls.phi = Math.PI * 0.45
+                    controls.theta = Math.PI * 0.3
+                    controls.update()
+                }
+            }
+            animOut()
+        }
+
+        function animate(controls) {
+            requestAnimationFrame(() => animate(controls))
+
+            const time = Date.now() * 0.001
+
+            if (!isInside) {
+                // OUTER RENDER
+                // Update inner portal texture every frame
+                // Dynamic portal camera (adds parallax & "alive" feeling)
+                const chaos = parseFloat(document.getElementById('innerChaos').value)
+                portalCamera.position.set(
+                    Math.sin(time * 0.3) * 6,
+                    10 + Math.cos(time * 0.4) * 4,
+                    -18 + Math.sin(time * 0.2) * 3
+                )
+                portalCamera.lookAt(
+                    Math.cos(time * 0.25) * 8,
+                    8,
+                    Math.sin(time * 0.3) * 8
+                )
+
+                // Render inner scene to texture
+                renderer.setRenderTarget(renderTarget)
+                renderer.render(sceneInner, portalCamera)
+                renderer.setRenderTarget(null)
+
+                // Slight box breathing animation
+                const breathe = 1 + Math.sin(time * 1.8) * 0.015
+                boxGroup.scale.setScalar(breathe * parseFloat(document.getElementById('boxScale').value))
+
+                // Render outer
+                renderer.render(sceneOuter, camera)
+            } else {
+                // INSIDE THE MASSIVE ROOM
+                // Apply live room scale
+                const roomS = parseFloat(document.getElementById('roomScale').value)
+                // We can't resize the mesh every frame efficiently, but we can scale the whole inner content
+                sceneInner.children.forEach(child => {
+                    if (child.userData && child.userData.isRoom) return
+                    if (child instanceof THREE.Mesh && child.geometry.type === 'BoxGeometry') {
+                        child.scale.setScalar(roomS / 50)
+                    }
+                })
+
+                // Rotate orbs for impossible motion
+                const chaos = parseFloat(document.getElementById('innerChaos').value);
+
+                // Rotate orbs for impossible motion
+                sceneInner.children.forEach(child => {
+                    if (child.userData && child.userData.rotSpeed) {
+                        child.rotation.y += child.userData.rotSpeed * chaos
+                    }
+                })
+
+                renderer.render(sceneInner, camera)
+            }
+
+            // Always update orbit controls when enabled
+            if (controlsEnabled) controls.update()
+        }
+
+        // Boot
+        window.onload = init
+    </script>
+</body>
+</html>

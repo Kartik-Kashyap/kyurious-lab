@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>How Much Life Is Left?</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #050608;
+      --fg: #f5f5f7;
+      --accent: #ffb347;
+      --accent-soft: #ffe2b5;
+      --past: #ff6b6b;
+      --future: #444b6e;
+      --grid-line: rgba(255, 255, 255, 0.04);
+      --muted: #a0a3b1;
+      --card: rgba(15, 16, 24, 0.95);
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      --radius-lg: 18px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #191b2a 0, #050608 55%);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 1100px;
+      background: radial-gradient(circle at top left, #1b1e30 0, #090a10 55%);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 24px 22px 26px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .wrapper::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.05), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(255, 179, 71, 0.08), transparent 60%);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .title-block {
+      max-width: 70%;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 2.3vw, 2.3rem);
+      letter-spacing: 0.03em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    h1 span.spark {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 16px rgba(255, 179, 71, 0.9);
+    }
+
+    .subtitle {
+      font-size: 0.88rem;
+      color: var(--muted);
+      max-width: 420px;
+      line-height: 1.35;
+    }
+
+    .chip {
+      font-size: 0.75rem;
+      padding: 4px 9px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(8, 8, 12, 0.9);
+      backdrop-filter: blur(8px);
+    }
+
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 9px rgba(255, 179, 71, 0.9);
+    }
+
+    /* Controls */
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .control-card {
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      padding: 10px 12px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      min-width: min(230px, 100%);
+      flex: 1 1 0;
+    }
+
+    .control-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .control-label span.value {
+      color: var(--accent-soft);
+      font-size: 0.82rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .control-input,
+    .control-range {
+      width: 100%;
+      margin-top: 2px;
+    }
+
+    .control-input {
+      padding: 7px 9px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(4, 5, 11, 0.9);
+      color: var(--fg);
+      font-size: 0.83rem;
+      outline: none;
+    }
+
+    .control-input:focus {
+      border-color: var(--accent-soft);
+      box-shadow: 0 0 0 1px rgba(255, 179, 71, 0.35);
+    }
+
+    .control-range {
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      outline: none;
+    }
+
+    .control-range::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 2px solid #151728;
+      box-shadow: 0 0 8px rgba(255, 179, 71, 0.8);
+      cursor: pointer;
+      margin-top: -5px;
+    }
+
+    .control-range::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 2px solid #151728;
+      box-shadow: 0 0 8px rgba(255, 179, 71, 0.8);
+      cursor: pointer;
+    }
+
+    .control-range::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Stats */
+
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      flex: 1 1 0;
+      min-width: min(180px, 100%);
+      background: radial-gradient(circle at top left, #1b1f33 0, #080910 55%);
+      border-radius: 14px;
+      padding: 8px 9px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 0.96rem;
+      font-variant-numeric: tabular-nums;
+      color: #fdfdfd;
+    }
+
+    .stat-sub {
+      font-size: 0.72rem;
+      color: rgba(220, 220, 235, 0.8);
+    }
+
+    /* Canvas wrapper + progress */
+
+    .canvas-card {
+      margin-top: 5px;
+      background: #050509;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #lifeCanvas {
+      width: 100%;
+      display: block;
+      background: radial-gradient(circle at top, #18182a 0, #050509 55%);
+    }
+
+    .progress-bar-wrap {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 7px;
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.02),
+        rgba(255, 255, 255, 0.05)
+      );
+      overflow: hidden;
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 179, 71, 1),
+        rgba(255, 108, 150, 0.95)
+      );
+      box-shadow: 0 0 18px rgba(255, 179, 71, 0.9);
+      transition: width 0.15s linear;
+    }
+
+    .footnote {
+      margin-top: 10px;
+      font-size: 0.7rem;
+      color: var(--muted);
+      max-width: 540px;
+      line-height: 1.4;
+    }
+
+    .footnote strong {
+      color: var(--accent-soft);
+      font-weight: 500;
+    }
+
+    @media (max-width: 720px) {
+      .wrapper {
+        padding: 18px 14px 18px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .title-block {
+        max-width: 100%;
+      }
+    }
+
+    .milestones {
+  margin-top: 18px;
+  background: rgba(10, 10, 16, 0.9);
+  padding: 18px;
+  border-radius: 16px;
+  color: #e4e5f1;
+  line-height: 1.5;
+  font-size: 0.88rem;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.milestones strong {
+  color: var(--accent-soft);
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="content">
+      <header>
+        <div class="title-block">
+          <h1><span class="spark"></span>How Much Life Is Left?</h1>
+          <p class="subtitle">
+            A soft approximation of your timeline. Not a prediction, not advice –
+            just a way to <em>see</em> time differently for a moment.
+          </p>
+        </div>
+        <div class="chip">
+          <span class="chip-dot"></span>
+          Live-updating timeline
+        </div>
+      </header>
+
+      <!-- Controls -->
+      <div class="controls-row">
+        <div class="control-card">
+          <div class="control-label">
+            <span>Date of birth</span>
+          </div>
+          <input
+            id="dobInput"
+            type="date"
+            class="control-input"
+          />
+        </div>
+
+        <div class="control-card">
+          <div class="control-label">
+            <span>Expected lifespan</span>
+            <span class="value"><span id="expectYearsLabel"></span> years</span>
+          </div>
+          <input
+            id="expectYearsRange"
+            type="range"
+            min="40"
+            max="100"
+            value="80"
+            class="control-range"
+          />
+        </div>
+
+        <div class="control-card">
+          <div class="control-label">
+            <span>Time scale</span>
+          </div>
+          <select id="scaleSelect" class="control-input">
+            <option value="weeks" selected>Weeks (52 per year)</option>
+            <option value="months">Months (12 per year)</option>
+            <option value="days">Days (compressed)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Time lived</div>
+          <div class="stat-value" id="livedMain">–</div>
+          <div class="stat-sub" id="livedSub">Years · Days · Hours</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Estimated time left</div>
+          <div class="stat-value" id="leftMain">–</div>
+          <div class="stat-sub" id="leftSub">Years · Days · Hours</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Progress through life</div>
+          <div class="stat-value" id="percentMain">–</div>
+          <div class="stat-sub" id="percentSub">This is only a rough, kind estimate.</div>
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-card">
+        <canvas id="lifeCanvas" height="380"></canvas>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-inner" id="progressBar"></div>
+        </div>
+      </div>
+
+      <div id="milestones" class="milestones"></div>
+      <button id="exportBtn">Save as Image</button>
+
+
+
+      <p class="footnote">
+        This visualization assumes a <strong>constant lifespan</strong> that you
+        can tweak. Real life is beautifully messier than this graph. If thinking
+        about time or mortality feels heavy, it’s okay to close this tab and do
+        something kind for yourself instead.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    // ====== Core DOM references ======
+    const dobInput = document.getElementById("dobInput");
+    const expectYearsRange = document.getElementById("expectYearsRange");
+    const expectYearsLabel = document.getElementById("expectYearsLabel");
+    const scaleSelect = document.getElementById("scaleSelect");
+
+    const livedMain = document.getElementById("livedMain");
+    const livedSub = document.getElementById("livedSub");
+    const leftMain = document.getElementById("leftMain");
+    const leftSub = document.getElementById("leftSub");
+    const percentMain = document.getElementById("percentMain");
+    const percentSub = document.getElementById("percentSub");
+    const progressBar = document.getElementById("progressBar");
+
+    const canvas = document.getElementById("lifeCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // ====== Constants & helpers ======
+    const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const MS_PER_HOUR = 60 * 60 * 1000;
+
+    function clamp(v, min, max) {
+      return Math.min(max, Math.max(min, v));
+    }
+
+    function formatDuration(ms) {
+      if (ms < 0) ms = 0;
+      const years = Math.floor(ms / MS_PER_YEAR);
+      const daysRemainder = Math.floor((ms % MS_PER_YEAR) / MS_PER_DAY);
+      const hoursRemainder = Math.floor((ms % MS_PER_DAY) / MS_PER_HOUR);
+      return { years, days: daysRemainder, hours: hoursRemainder };
+    }
+
+    function plural(n, word) {
+      return n + " " + word + (n === 1 ? "" : "s");
+    }
+
+    document.getElementById("exportBtn").onclick = () => {
+  html2canvas(document.querySelector(".wrapper")).then(canvas => {
+    const link = document.createElement('a');
+    link.download = 'life-visualization.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+};
+
+
+    // ====== Layout / canvas sizing ======
+    function resizeCanvas() {
+      const parentRect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const width = parentRect.width;
+      const height = canvas.getAttribute("height") || 380;
+
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // ====== Core state & computation ======
+    function getDobDate() {
+      const value = dobInput.value;
+      if (!value) return null;
+      const d = new Date(value + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function getLifeMetrics() {
+      const dob = getDobDate();
+      const expectYears = Number(expectYearsRange.value) || 80;
+      const now = new Date();
+
+      let livedMs = 0;
+      if (dob && dob <= now) {
+        livedMs = now - dob;
+      }
+
+      const totalMs = expectYears * MS_PER_YEAR;
+      const fraction = clamp(livedMs / totalMs, 0, 1);
+      const leftMs = Math.max(totalMs - livedMs, 0);
+
+      return { dob, expectYears, now, livedMs, leftMs, totalMs, fraction };
+    }
+
+    // ====== Stats UI update ======
+    function updateStats() {
+      const { dob, expectYears, livedMs, leftMs, fraction } = getLifeMetrics();
+
+      expectYearsLabel.textContent = expectYears.toString();
+
+      if (!dob) {
+        livedMain.textContent = "Pick your birth date ↑";
+        livedSub.textContent = "We’ll gently estimate from there.";
+        leftMain.textContent = "–";
+        leftSub.textContent = "Years · Days · Hours";
+        percentMain.textContent = "–";
+        percentSub.textContent = "Waiting for a starting point.";
+        progressBar.style.width = "0%";
+        return;
+      }
+
+      const lived = formatDuration(livedMs);
+      const left = formatDuration(leftMs);
+
+      livedMain.textContent = `${plural(lived.years, "year")} lived`;
+      livedSub.textContent =
+        `${plural(lived.days, "day")}, ${plural(lived.hours, "hour")} (approx)`;
+
+      if (leftMs <= 0) {
+        leftMain.textContent = "You’ve outlived this estimate 🎉";
+        leftSub.textContent = "Change the lifespan slider – your story isn’t linear.";
+      } else {
+        leftMain.textContent = `${plural(left.years, "year")} left (approx)`;
+        leftSub.textContent =
+          `${plural(left.days, "day")}, ${plural(left.hours, "hour")} (approx)`;
+      }
+
+      const pct = fraction * 100;
+      percentMain.textContent = `${pct.toFixed(1)}% complete`;
+      percentSub.textContent = "A visual metaphor, not a verdict.";
+
+      progressBar.style.width = `${pct.toFixed(3)}%`;
+    }
+
+    // ====== Canvas drawing ======
+    function drawLifeGrid() {
+      const { expectYears, livedMs, totalMs, fraction } = getLifeMetrics();
+
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      ctx.clearRect(0, 0, width, height);
+
+      // Background gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      bgGrad.addColorStop(0, "#151628");
+      bgGrad.addColorStop(1, "#050509");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      const paddingX = 32;
+      const paddingTop = 28;
+      const paddingBottom = 40;
+
+      const innerWidth = width - paddingX * 2;
+      const innerHeight = height - paddingTop - paddingBottom;
+
+      // Determine scale: weeks / months / days
+      const scale = scaleSelect.value;
+      let unitsPerYear;
+      let label;
+      if (scale === "weeks") {
+        unitsPerYear = 52;
+        label = "Weeks";
+      } else if (scale === "months") {
+        unitsPerYear = 12;
+        label = "Months";
+      } else {
+        // days – we compress heavily; we won't draw all days 1:1
+        unitsPerYear = 365;
+        label = "Days (compressed)";
+      }
+
+      const totalUnits = Math.round(expectYears * unitsPerYear);
+      if (totalUnits <= 0) return;
+
+      // Determine columns/rows based on scale
+      let cols;
+      if (scale === "weeks") {
+        cols = 52; // 1 row per year – iconic visual
+      } else if (scale === "months") {
+        cols = 24; // 2 years per row
+      } else {
+        cols = 60; // compressed grid
+      }
+
+      const rows = Math.ceil(totalUnits / cols);
+      const cellGap = 1;
+      const cellWidth = innerWidth / cols - cellGap;
+      const cellHeight = innerHeight / rows - cellGap;
+
+      const usableCellWidth = Math.max(cellWidth, 2);
+      const usableCellHeight = Math.max(cellHeight, 2);
+
+      const startX = paddingX;
+      const startY = paddingTop;
+
+      const livedUnits = Math.floor((livedMs / totalMs) * totalUnits);
+
+      // Grid lines (very subtle)
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,0.03)";
+      ctx.lineWidth = 1;
+      for (let r = 0; r <= rows; r++) {
+        const y = startY + r * (usableCellHeight + cellGap) - cellGap / 2;
+        ctx.beginPath();
+        ctx.moveTo(startX, y);
+        ctx.lineTo(startX + cols * (usableCellWidth + cellGap), y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Cells
+      for (let i = 0; i < totalUnits; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+
+        const x = startX + col * (usableCellWidth + cellGap);
+        const y = startY + row * (usableCellHeight + cellGap);
+
+        const isPast = i < livedUnits;
+        const isCurrent = i === livedUnits;
+
+        if (isPast) {
+          const grad = ctx.createLinearGradient(x, y, x + usableCellWidth, y + usableCellHeight);
+          grad.addColorStop(0, "#ff6b6b");
+          grad.addColorStop(1, "#ffb347");
+          ctx.fillStyle = grad;
+        } else {
+          ctx.fillStyle = "rgba(110, 120, 180, 0.5)";
+        }
+
+        ctx.beginPath();
+        const radius = Math.min(usableCellWidth, usableCellHeight) * 0.35;
+        roundRect(ctx, x, y, usableCellWidth, usableCellHeight, radius);
+        ctx.fill();
+
+        if (isCurrent) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          roundRect(ctx, x - 1, y - 1, usableCellWidth + 2, usableCellHeight + 2, radius);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Left labels
+      ctx.fillStyle = "rgba(200, 203, 230, 0.85)";
+      ctx.font = "10px system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text'";
+      ctx.textBaseline = "middle";
+
+      ctx.fillText(label, paddingX, paddingTop - 12);
+      ctx.fillText(
+        `Each row ≈ ${
+          scale === "weeks"
+            ? "1 year"
+            : scale === "months"
+            ? "2 years"
+            : "compressed time"
+        }`,
+        paddingX,
+        height - 18
+      );
+
+      // Right label: live time
+      const now = new Date();
+      ctx.textAlign = "right";
+      ctx.fillText(
+        `Now · ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        width - paddingX,
+        paddingTop - 12
+      );
+      ctx.textAlign = "left";
+    }
+
+    // Helper to draw rounded rect on canvas
+    function roundRect(ctx, x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+    }
+
+    function generateMilestones() {
+  const { livedMs, leftMs, expectYears } = getLifeMetrics();
+  if (!dobInput.value) return;
+
+  const now = new Date();
+  const dob = new Date(dobInput.value);
+  const age = (now - dob) / MS_PER_YEAR;
+
+  const milestoneData = [
+    { title: "First Memory", age: 4 },
+    { title: "Peak Physical Age", age: 28 },
+    { title: "Mid-life checkpoint", age: expectYears / 2 },
+    { title: "Typical Retirement Age", age: 60 },
+    { title: "Bonus Years", age: expectYears + 5 }
+  ];
+
+  let html = `<strong>Estimated Milestones:</strong><ul>`;
+  milestoneData.forEach(m => {
+    const yearsLeft = (m.age - age).toFixed(1);
+    html += `<li><strong>${m.title}</strong>: ${
+      yearsLeft < 0 
+        ? `Possibly already experienced.` 
+        : `${yearsLeft} years from now.`}</li>`;
+  });
+  html += `</ul>`;
+
+  document.getElementById("milestones").innerHTML = html;
+}
+
+
+    // ====== Animation loop ======
+    function tick() {
+      updateStats();
+      drawLifeGrid();
+      requestAnimationFrame(tick);
+      generateMilestones();
+    }
+
+    // ====== Initial setup ======
+    function initDefaultDOB() {
+      if (dobInput.value) return;
+      // Default: 20 years ago from today (roughly), just to show something
+      const now = new Date();
+      const approx = new Date(now.getTime() - 20 * MS_PER_YEAR);
+      const yyyy = approx.getFullYear();
+      const mm = String(approx.getMonth() + 1).padStart(2, "0");
+      const dd = String(approx.getDate()).padStart(2, "0");
+      dobInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function init() {
+      resizeCanvas();
+      initDefaultDOB();
+      updateStats();
+      drawLifeGrid();
+      requestAnimationFrame(tick);
+    }
+
+    // ====== Event wiring ======
+    dobInput.addEventListener("change", () => {
+      updateStats();
+      drawLifeGrid();
+    });
+
+    expectYearsRange.addEventListener("input", () => {
+      expectYearsLabel.textContent = expectYearsRange.value;
+      updateStats();
+      drawLifeGrid();
+    });
+
+    scaleSelect.addEventListener("change", () => {
+      drawLifeGrid();
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
