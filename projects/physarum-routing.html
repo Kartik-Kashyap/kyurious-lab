@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Physarum Routing - Kyurious Labs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.8);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #00ffcc; 
+            --text: #ffffff;
+            --panel-bg: rgba(15, 15, 15, 0.85);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+        }
+
+        /* --- USER PROVIDED NAV CSS --- */
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: calc(100% - 48px); /* Adjusted for padding */
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            letter-spacing: 1px;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+            color: var(--accent);
+        }
+
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* --- USER PROVIDED HEADER CSS --- */
+        .hero-header {
+            position: fixed;
+            top: 80px; 
+            left: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .hero-header .realm-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            opacity: 0.8;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .hero-header h1 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: #fff;
+            margin: 0;
+        }
+
+        .hero-header p {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 8px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            max-width: 240px;
+        }
+
+        /* --- SIMULATION & CONTROLS CSS --- */
+        #simCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        .controls-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--nav-bg);
+            border: 1px solid var(--nav-border);
+            color: var(--text);
+            padding: 10px 16px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            cursor: pointer;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .controls-toggle:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .control-panel {
+            position: fixed;
+            bottom: 70px;
+            right: 24px;
+            width: 260px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--nav-border);
+            border-radius: 8px;
+            padding: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .control-panel.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-group label span {
+            color: var(--accent);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            margin-top: -5px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 600px) {
+            .hero-header { top: 70px; }
+            .control-panel {
+                bottom: 80px;
+                right: 50%;
+                transform: translate(50%, 20px);
+                width: calc(100vw - 48px);
+                box-sizing: border-box;
+            }
+            .control-panel.active {
+                transform: translate(50%, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span>
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text">SYSTEM ACTIVE</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-header">
+        <div class="realm-tag">⬡ The Bio Realm</div>
+        <h1>Physarum<br>Routing</h1>
+        <p>Biological Network Simulation & Optimal Pathfinding</p>
+    </div>
+
+    <canvas id="simCanvas"></canvas>
+
+    <button class="controls-toggle" onclick="toggleControls()">PARAMETERS</button>
+    <div class="control-panel" id="controlPanel">
+        <div class="control-group">
+            <label>Sensor Angle <span>(rad)</span></label>
+            <input type="range" id="p_sensorAngle" min="0.1" max="1.5" step="0.1" value="0.7">
+        </div>
+        <div class="control-group">
+            <label>Sensor Distance <span>(px)</span></label>
+            <input type="range" id="p_sensorDist" min="2" max="30" step="1" value="12">
+        </div>
+        <div class="control-group">
+            <label>Turn Speed <span>(rad)</span></label>
+            <input type="range" id="p_turnSpeed" min="0.05" max="1.0" step="0.05" value="0.3">
+        </div>
+        <div class="control-group">
+            <label>Agent Speed <span>(px)</span></label>
+            <input type="range" id="p_speed" min="0.5" max="5" step="0.1" value="1.5">
+        </div>
+        <div class="control-group">
+            <label>Decay Rate <span>(%)</span></label>
+            <input type="range" id="p_decay" min="0.90" max="0.99" step="0.01" value="0.95">
+        </div>
+    </div>
+
+    <script>
+        // --- UI Logic ---
+        function toggleControls() {
+            document.getElementById('controlPanel').classList.toggle('active');
+        }
+
+        // --- Core Simulation Logic ---
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        // We use a hidden canvas to draw the raw data array, then stretch it to the screen
+        // This keeps the simulation running at 60fps even on mobile while looking sharp
+        const offCanvas = document.createElement('canvas');
+        const offCtx = offCanvas.getContext('2d');
+
+        // Config bound to UI
+        const config = {
+            numAgents: window.innerWidth > 800 ? 15000 : 8000,
+            sensorAngle: 0.7,
+            sensorDist: 12,
+            turnSpeed: 0.3,
+            speed: 1.5,
+            decay: 0.95, 
+            deposit: 1.0
+        };
+
+        // Internal resolution mapping
+        let simWidth, simHeight;
+        let trailMap, nextTrailMap;
+        let agentsX, agentsY, agentsAngle;
+        let imgData;
+
+        function initSimulation() {
+            // Scale down internal simulation for performance (vital for Javascript CPU arrays)
+            const scale = Math.min(1.0, 1000 / window.innerWidth);
+            simWidth = Math.floor(window.innerWidth * scale);
+            simHeight = Math.floor(window.innerHeight * scale);
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            offCanvas.width = simWidth;
+            offCanvas.height = simHeight;
+
+            // Arrays for spatial data
+            trailMap = new Float32Array(simWidth * simHeight);
+            nextTrailMap = new Float32Array(simWidth * simHeight);
+            
+            // SoA (Structure of Arrays) for fast cache reading
+            agentsX = new Float32Array(config.numAgents);
+            agentsY = new Float32Array(config.numAgents);
+            agentsAngle = new Float32Array(config.numAgents);
+
+            // Spawn agents randomly in a circle
+            const cx = simWidth / 2;
+            const cy = simHeight / 2;
+            const radius = Math.min(cx, cy) * 0.8;
+
+            for (let i = 0; i < config.numAgents; i++) {
+                const r = radius * Math.sqrt(Math.random());
+                const theta = Math.random() * 2 * Math.PI;
+                agentsX[i] = cx + r * Math.cos(theta);
+                agentsY[i] = cy + r * Math.sin(theta);
+                // Point them towards center for a cool start, or random
+                agentsAngle[i] = theta + Math.PI + (Math.random() * 0.5 - 0.25);
+            }
+
+            imgData = offCtx.createImageData(simWidth, simHeight);
+        }
+
+        // Helper to read trail value at a specific coordinate
+        function sense(agentIdx, angleOffset) {
+            const angle = agentsAngle[agentIdx] + angleOffset;
+            const sx = Math.floor(agentsX[agentIdx] + Math.cos(angle) * config.sensorDist);
+            const sy = Math.floor(agentsY[agentIdx] + Math.sin(angle) * config.sensorDist);
+
+            if (sx < 0 || sx >= simWidth || sy < 0 || sy >= simHeight) return 0;
+            return trailMap[sy * simWidth + sx];
+        }
+
+        // Main Loop
+        function animate() {
+            // 1. Sense and Move Agents
+            for (let i = 0; i < config.numAgents; i++) {
+                const weightForward = sense(i, 0);
+                const weightLeft = sense(i, -config.sensorAngle);
+                const weightRight = sense(i, config.sensorAngle);
+
+                const randomSteer = Math.random();
+
+                // Steer towards strongest chemical trail
+                if (weightForward > weightLeft && weightForward > weightRight) {
+                    // Keep going straight
+                } else if (weightForward < weightLeft && weightForward < weightRight) {
+                    // Turn randomly if blocked or evenly spread
+                    agentsAngle[i] += (randomSteer > 0.5 ? 1 : -1) * config.turnSpeed;
+                } else if (weightLeft > weightRight) {
+                    agentsAngle[i] -= config.turnSpeed;
+                } else if (weightRight > weightLeft) {
+                    agentsAngle[i] += config.turnSpeed;
+                }
+
+                // Move
+                let nx = agentsX[i] + Math.cos(agentsAngle[i]) * config.speed;
+                let ny = agentsY[i] + Math.sin(agentsAngle[i]) * config.speed;
+
+                // Screen Wrap
+                if (nx < 0) nx += simWidth;
+                else if (nx >= simWidth) nx -= simWidth;
+                if (ny < 0) ny += simHeight;
+                else if (ny >= simHeight) ny -= simHeight;
+
+                agentsX[i] = nx;
+                agentsY[i] = ny;
+
+                // Deposit chemical
+                const ix = Math.floor(nx);
+                const iy = Math.floor(ny);
+                trailMap[iy * simWidth + ix] += config.deposit;
+            }
+
+            // 2. Diffuse and Decay Map
+            for (let y = 0; y < simHeight; y++) {
+                for (let x = 0; x < simWidth; x++) {
+                    let sum = 0;
+                    // Fast 3x3 blur
+                    for (let offsetY = -1; offsetY <= 1; offsetY++) {
+                        for (let offsetX = -1; offsetX <= 1; offsetX++) {
+                            let sampleX = x + offsetX;
+                            let sampleY = y + offsetY;
+                            
+                            if (sampleX >= 0 && sampleX < simWidth && sampleY >= 0 && sampleY < simHeight) {
+                                sum += trailMap[sampleY * simWidth + sampleX];
+                            }
+                        }
+                    }
+                    
+                    const blurred = sum / 9;
+                    const decayed = blurred * config.decay;
+                    nextTrailMap[y * simWidth + x] = decayed;
+
+                    // 3. Render directly to ImageData
+                    const pIdx = (y * simWidth + x) * 4;
+                    // Mapping density to a neon teal/cyan color (#00ffcc)
+                    const intensity = Math.min(1.0, decayed);
+                    imgData.data[pIdx] = intensity * 0;       // R
+                    imgData.data[pIdx + 1] = intensity * 255; // G
+                    imgData.data[pIdx + 2] = intensity * 204; // B
+                    imgData.data[pIdx + 3] = 255;             // A
+                }
+            }
+
+            // Swap buffers
+            let temp = trailMap;
+            trailMap = nextTrailMap;
+            nextTrailMap = temp;
+
+            // Draw to screen
+            offCtx.putImageData(imgData, 0, 0);
+            ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height);
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('resize', () => {
+            initSimulation();
+        });
+
+        // Bind UI inputs to config object
+        const inputs = ['sensorAngle', 'sensorDist', 'turnSpeed', 'speed', 'decay'];
+        inputs.forEach(key => {
+            document.getElementById(`p_${key}`).addEventListener('input', (e) => {
+                config[key] = parseFloat(e.target.value);
+            });
+        });
+
+        // Start
+        initSimulation();
+        animate();
+    </script>
+</body>
+</html>

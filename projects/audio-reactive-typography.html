@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Audio-Reactive Topography | KYURIOUS LABS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --nav-bg: rgba(10, 10, 10, 0.8);
+            --nav-border: rgba(255, 255, 255, 0.1);
+            --accent: #ff00cc; /* Switched to pink for a synth-wave audio vibe */
+            --text: #ffffff;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            padding-top: 60px;
+            margin: 0;
+            background: #000;
+            overflow: hidden; /* Prevent scrolling */
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* ------------------ USER PROVIDED CSS ------------------ */
+        .lab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--nav-border);
+            z-index: 9999;
+            letter-spacing: 1px;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 700;
+            opacity: 0.6;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+        .back-link:hover {
+            opacity: 1;
+            color: var(--text);
+        }
+        .back-link .arrow {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+        .brand-name {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-text {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .status-pulse {
+            width: 6px;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* HEADER */
+        .hero-header {
+            position: fixed;
+            top: 72px; 
+            left: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .hero-header .realm-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--accent);
+            opacity: 0.8;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .hero-header h1 {
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            color: #fff;
+            margin: 0;
+        }
+        .hero-header p {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 4px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            max-width: 240px;
+        }
+
+        /* ------------------ SYSTEM ADDITIONS ------------------ */
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* Start Overlay for Audio Context Permission */
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        .start-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 24px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 0, 204, 0.2);
+        }
+        .start-btn:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 25px var(--accent);
+        }
+        .start-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.7rem;
+            margin-top: 16px;
+            text-align: center;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        /* Adjust dat.gui position so it doesn't overlap the nav */
+        .dg.ac {
+            z-index: 9000 !important;
+            top: 70px !important;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="lab-nav">
+        <div class="nav-left">
+            <a href="../index.html" class="back-link">
+                <span class="arrow">←</span>
+                <span class="back-text">BACK TO LABS</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <span class="brand-name">KYURIOUS LABS</span>
+        </div>
+        <div class="nav-right">
+            <div class="status-container">
+                <span class="status-pulse"></span>
+                <span class="status-text" id="status-text">SYSTEM STANDBY</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-header">
+        <div class="realm-tag">⬡ The Sensory Realm</div>
+        <h1>Audio-Reactive<br>Topography</h1>
+        <p>Turning abstract mic input into a tangible, explorable 3D landscape.</p>
+    </div>
+
+    <div id="start-overlay">
+        <button class="start-btn" id="start-btn">Initialize Microphone</button>
+        <p class="start-text">This experiment requires microphone access to map environmental frequencies to the 3D mesh.</p>
+    </div>
+
+    <div id="webgl-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+
+    <script>
+        // --- Globals ---
+        let scene, camera, renderer, terrain;
+        let audioContext, analyser, dataArray;
+        let simplex = new SimplexNoise();
+        let time = 0;
+        let isAudioActive = false;
+
+        // --- Parameters for GUI ---
+        const params = {
+            wireframe: true,
+            meshColor: '#ff00cc',
+            bgColor: '#050505',
+            baseSpeed: 0.002,
+            noiseScale: 0.03,
+            heightScale: 3.0,
+            bassImpact: 8.0,
+            trebleImpact: 2.0,
+            cameraZ: 40,
+            cameraY: 15
+        };
+
+        // --- Init Function ---
+        function init() {
+            // 1. Scene Setup
+            const container = document.getElementById('webgl-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(params.bgColor);
+            scene.fog = new THREE.FogExp2(params.bgColor, 0.015); // Adds depth/fade out
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, params.cameraY, params.cameraZ);
+            camera.lookAt(0, 0, 0);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Mobile optimization
+            container.appendChild(renderer.domElement);
+
+            // 4. Geometry Setup
+            // A large plane with high segments for smooth displacement
+            const geometry = new THREE.PlaneGeometry(100, 100, 128, 128);
+            geometry.rotateX(-Math.PI / 2); // Lay it flat
+
+            const material = new THREE.MeshBasicMaterial({
+                color: params.meshColor,
+                wireframe: params.wireframe,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            terrain = new THREE.Mesh(geometry, material);
+            scene.add(terrain);
+
+            // 5. GUI Setup
+            setupGUI();
+
+            // 6. Events
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('start-btn').addEventListener('click', initAudio);
+
+            // 7. Start Loop
+            animate();
+        }
+
+        // --- GUI Construction ---
+        function setupGUI() {
+            const gui = new dat.GUI({ width: 280 });
+            gui.close(); // Start closed to save mobile space
+            
+            const folderVisual = gui.addFolder('Visuals');
+            folderVisual.addColor(params, 'meshColor').onChange(c => terrain.material.color.set(c));
+            folderVisual.addColor(params, 'bgColor').onChange(c => {
+                scene.background.set(c);
+                scene.fog.color.set(c);
+            });
+            folderVisual.add(params, 'wireframe').onChange(v => terrain.material.wireframe = v);
+            
+            const folderTerrain = gui.addFolder('Terrain & Audio Physics');
+            folderTerrain.add(params, 'baseSpeed', 0, 0.01).name('Scroll Speed');
+            folderTerrain.add(params, 'noiseScale', 0.01, 0.1).name('Noise Detail');
+            folderTerrain.add(params, 'heightScale', 0, 10).name('Base Height');
+            folderTerrain.add(params, 'bassImpact', 0, 20).name('Bass Eruption');
+            folderTerrain.add(params, 'trebleImpact', 0, 10).name('Treble Ripples');
+
+            const folderCam = gui.addFolder('Camera');
+            folderCam.add(params, 'cameraY', 1, 50).onChange(v => camera.position.y = v);
+            folderCam.add(params, 'cameraZ', 10, 80).onChange(v => camera.position.z = v);
+        }
+
+        // --- Audio Context Setup ---
+        async function initAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                
+                analyser.fftSize = 512; // Controls frequency bin resolution
+                source.connect(analyser);
+                
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                isAudioActive = true;
+
+                // UI Updates
+                document.getElementById('start-overlay').style.opacity = '0';
+                setTimeout(() => document.getElementById('start-overlay').style.display = 'none', 500);
+                document.getElementById('status-text').innerText = "SYSTEM ACTIVE";
+                document.querySelector('.status-pulse').style.backgroundColor = "#00ffcc";
+                document.querySelector('.status-pulse').style.boxShadow = "0 0 8px #00ffcc";
+
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                document.querySelector('.start-text').innerText = "Microphone access denied. Please allow permissions and refresh.";
+                document.querySelector('.start-text').style.color = "#ff3333";
+            }
+        }
+
+        // --- Animation & Deformation Logic ---
+        function animate() {
+            requestAnimationFrame(animate);
+            time += params.baseSpeed;
+
+            if (isAudioActive) {
+                analyser.getByteFrequencyData(dataArray);
+            }
+
+            const positions = terrain.geometry.attributes.position;
+            const vertex = new THREE.Vector3();
+
+            // Calculate averages for Bass (low freqs) and Treble (high freqs)
+            let bass = 0, treble = 0;
+            if (isAudioActive) {
+                // Average first 10 bins for bass
+                for(let i = 0; i < 10; i++) bass += dataArray[i];
+                bass = (bass / 10) / 255.0; // Normalize 0 to 1
+
+                // Average higher bins for treble
+                for(let i = 50; i < 150; i++) treble += dataArray[i];
+                treble = (treble / 100) / 255.0;
+            }
+
+            for (let i = 0; i < positions.count; i++) {
+                vertex.fromBufferAttribute(positions, i);
+
+                // Base Perlin Noise for rolling terrain
+                let noise = simplex.noise3D(
+                    vertex.x * params.noiseScale, 
+                    vertex.z * params.noiseScale, 
+                    time
+                );
+                
+                let yPos = noise * params.heightScale;
+
+                // Audio Modification
+                if (isAudioActive) {
+                    // Map distance from center to distribute frequencies
+                    let distanceX = Math.abs(vertex.x);
+                    
+                    // Center vertices spike with Bass
+                    let bassFactor = Math.max(0, 1 - (distanceX / 20)); 
+                    yPos += (noise * bass * params.bassImpact * bassFactor);
+
+                    // Outer vertices ripple with Treble
+                    let trebleFactor = distanceX / 50; // Increases towards edges
+                    // Add high frequency sine waves dependent on treble volume
+                    yPos += Math.sin(vertex.x * 0.5 + time * 10) * treble * params.trebleImpact * trebleFactor;
+                }
+
+                // Update Y (height)
+                positions.setY(i, yPos);
+            }
+
+            positions.needsUpdate = true;
+            terrain.geometry.computeVertexNormals();
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Responsive Handler ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Bootstrap
+        init();
+    </script>
+</body>
+</html>

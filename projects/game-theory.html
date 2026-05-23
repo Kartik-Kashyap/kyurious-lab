@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Game Theory — Agent-Based Complex Systems</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --nav-bg: rgba(10,10,10,0.85);
+    --nav-border: rgba(255,255,255,0.1);
+    --accent: #00ffcc;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --text: #ffffff;
+    --bg: #050508;
+    --surface: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.07);
+    --muted: rgba(255,255,255,0.35);
+    --coop: #00ffcc;
+    --defect: #ff4d6d;
+    --neutral: #a78bfa;
+    --tft: #fbbf24;
+    --rand: #60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;}
+
+/* NAV */
+.lab-nav{
+    position:fixed;top:0;left:0;width:100%;height:60px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 24px;background:var(--nav-bg);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--nav-border);z-index:9999;
+    font-family:'Space Grotesk',sans-serif;letter-spacing:1px;
+}
+.back-link{display:flex;align-items:center;color:#fff;text-decoration:none;font-size:0.7rem;font-weight:700;opacity:0.6;transition:opacity 0.3s;}
+.back-link:hover{opacity:1;}
+.back-link .arrow{font-size:1.2rem;margin-right:8px;}
+.brand-name{font-weight:800;font-size:0.9rem;color:var(--text);text-shadow:0 0 10px rgba(255,255,255,0.2);}
+.status-container{display:flex;align-items:center;gap:8px;}
+.status-text{font-size:0.6rem;font-weight:600;color:rgba(255,255,255,0.4);}
+.status-pulse{width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%{transform:scale(0.95);opacity:0.5;}50%{transform:scale(1.2);opacity:1;}100%{transform:scale(0.95);opacity:0.5;}}
+body{padding-top:60px;}
+
+/* LAYOUT */
+.page{padding:20px 16px 40px;max-width:1200px;margin:0 auto;}
+
+/* HERO HEADER */
+.hero{padding:18px 0 12px;}
+.hero .tag{font-size:0.58rem;font-weight:700;letter-spacing:3px;color:var(--accent);opacity:0.85;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:6px;}
+.hero h1{font-size:clamp(1.4rem,4vw,2.2rem);font-weight:700;line-height:1.1;letter-spacing:-0.02em;}
+.hero h1 span{color:var(--accent);}
+.hero .subtitle{font-size:0.78rem;color:var(--muted);margin-top:6px;max-width:560px;line-height:1.6;font-family:'JetBrains Mono',monospace;}
+.hero .math-pill{display:inline-block;background:rgba(0,255,204,0.07);border:1px solid rgba(0,255,204,0.2);border-radius:4px;padding:2px 8px;font-size:0.65rem;font-family:'JetBrains Mono',monospace;color:var(--accent);margin:8px 4px 0 0;}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-top:16px;}
+@media(max-width:860px){.main-grid{grid-template-columns:1fr;}}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.card-title{font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-bottom:12px;}
+
+/* CANVAS */
+#grid-canvas{width:100%;display:block;border-radius:8px;cursor:crosshair;touch-action:none;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+.tab{padding:5px 10px;border:1px solid var(--border);border-radius:5px;font-size:0.62rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;transition:all 0.2s;}
+.tab:hover{border-color:var(--accent);color:var(--accent);}
+.tab.active{background:rgba(0,255,204,0.1);border-color:var(--accent);color:var(--accent);}
+
+/* CONTROL PANEL */
+.ctrl-section{margin-bottom:16px;}
+.ctrl-label{display:flex;justify-content:space-between;font-size:0.65rem;color:var(--muted);margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+.ctrl-label span:last-child{color:var(--accent);font-weight:600;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:none;}
+select{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:rgba(255,255,255,0.7);border-radius:6px;padding:6px 8px;font-size:0.65rem;font-family:'JetBrains Mono',monospace;cursor:pointer;outline:none;margin-top:3px;}
+select option{background:#111;}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.btn{flex:1;padding:7px 0;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.65);border-radius:6px;font-size:0.6rem;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;font-family:'JetBrains Mono',monospace;text-transform:uppercase;min-width:0;}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,255,204,0.08);}
+.btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,255,204,0.12);}
+.btn.danger{border-color:rgba(255,77,109,0.4);}
+.btn.danger:hover{border-color:var(--defect);color:var(--defect);background:rgba(255,77,109,0.08);}
+
+/* STRATEGY KEY */
+.strategy-key{display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+.key-row{display:flex;align-items:center;gap:8px;font-size:0.62rem;font-family:'JetBrains Mono',monospace;color:var(--muted);}
+.key-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.stat-box{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px 10px;}
+.stat-name{font-size:0.55rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.stat-val{font-size:1.05rem;font-weight:700;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+.stat-val.coop{color:var(--coop);}
+.stat-val.def{color:var(--defect);}
+.stat-val.gen{color:var(--accent3);}
+.stat-val.score{color:var(--tft);}
+
+/* PAYOFF MATRIX */
+.matrix-wrap{overflow-x:auto;margin-top:4px;}
+.payoff-matrix{border-collapse:collapse;width:100%;font-family:'JetBrains Mono',monospace;font-size:0.65rem;}
+.payoff-matrix th{padding:5px 8px;color:var(--muted);font-weight:600;letter-spacing:1px;text-align:center;border-bottom:1px solid var(--border);}
+.payoff-matrix td{padding:6px 8px;text-align:center;border:1px solid var(--border);}
+.payoff-matrix .cell-cc{color:var(--coop);}
+.payoff-matrix .cell-cd{color:var(--defect);}
+.payoff-matrix .cell-dc{color:var(--accent2);}
+.payoff-matrix .cell-dd{color:var(--muted);}
+
+/* CHART CANVAS */
+#evo-canvas{width:100%;display:block;border-radius:6px;background:rgba(0,0,0,0.3);}
+
+/* MATH PANEL */
+.math-block{background:rgba(0,0,0,0.4);border:1px solid rgba(0,255,204,0.1);border-radius:6px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.6);line-height:1.8;margin-top:8px;}
+.math-block .highlight{color:var(--accent);}
+.math-block .eq{color:rgba(255,255,255,0.85);}
+
+/* INFO TOOLTIP BADGE */
+.info-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.badge{font-size:0.55rem;padding:2px 7px;border-radius:10px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:1px;}
+.badge.ess{background:rgba(0,255,204,0.1);color:var(--coop);border:1px solid rgba(0,255,204,0.2);}
+.badge.unstable{background:rgba(255,77,109,0.1);color:var(--defect);border:1px solid rgba(255,77,109,0.2);}
+.badge.mixed{background:rgba(167,139,250,0.1);color:var(--accent3);border:1px solid rgba(167,139,250,0.2);}
+
+/* EQUILIBRIUM ANALYSIS */
+.eq-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+.eq-row:last-child{border-bottom:none;}
+.eq-label{font-size:0.6rem;font-family:'JetBrains Mono',monospace;color:var(--muted);min-width:80px;}
+.eq-val{font-size:0.62rem;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.8);line-height:1.5;}
+
+/* DIVIDER */
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0;}
+
+/* ANNOTATION */
+.annotation{font-size:0.6rem;font-family:'JetBrains Mono',monospace;color:var(--muted);line-height:1.7;margin-top:6px;}
+.annotation strong{color:rgba(255,255,255,0.7);font-weight:600;}
+
+/* BOTTOM INSIGHT BAR */
+.insight-bar{
+    position:fixed;bottom:0;left:0;width:100%;
+    background:var(--nav-bg);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--border);
+    padding:8px 20px;z-index:200;
+    display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+}
+.insight-item{display:flex;align-items:center;gap:6px;font-size:0.6rem;font-family:'JetBrains Mono',monospace;}
+.insight-dot{width:7px;height:7px;border-radius:50%;}
+.insight-label{color:var(--muted);}
+.insight-val{color:#fff;font-weight:600;}
+
+@media(max-width:600px){
+    .nav-left .back-text{display:none;}
+    .stats-grid{grid-template-columns:1fr 1fr;}
+    .insight-bar{gap:10px;padding:6px 12px;}
+    .insight-item{font-size:0.55rem;}
+}
+</style>
+</head>
+<body>
+
+<nav class="lab-nav">
+    <div class="nav-left">
+        <a href="../index.html" class="back-link">
+            <span class="arrow">←</span>
+            <span class="back-text">BACK TO LABS</span>
+        </a>
+    </div>
+    <div class="nav-center"><span class="brand-name">KYURIOUS LABS</span></div>
+    <div class="nav-right">
+        <div class="status-container">
+            <span class="status-pulse"></span>
+            <span class="status-text">SYSTEM ACTIVE</span>
+        </div>
+    </div>
+</nav>
+
+<div class="page">
+    <div class="hero">
+        <div class="tag">⬡ Game Theory × Complex Systems</div>
+        <h1>Agent-Based <span>Evolutionary</span><br>Game Dynamics</h1>
+        <div class="subtitle">Spatial evolutionary game theory on a 2D lattice. Agents play iterated strategies — Cooperate, Defect, Tit-for-Tat, Pavlov — evolving via replicator dynamics and local imitation.</div>
+        <div style="margin-top:6px;">
+            <span class="math-pill">Prisoner's Dilemma</span>
+            <span class="math-pill">Replicator Eq.</span>
+            <span class="math-pill">Nash Equilibrium</span>
+            <span class="math-pill">ESS Analysis</span>
+            <span class="math-pill">Spatial ABM</span>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- LEFT COLUMN -->
+        <div>
+            <div class="card">
+                <div class="info-row">
+                    <div class="card-title">Spatial Strategy Population</div>
+                    <div id="ess-badge" class="badge mixed">MIXED EQ.</div>
+                </div>
+                <canvas id="grid-canvas"></canvas>
+            </div>
+
+            <div class="card" style="margin-top:14px;">
+                <div class="card-title">Evolutionary Dynamics — Replicator Trajectory</div>
+                <canvas id="evo-canvas" height="130"></canvas>
+                <div class="annotation" style="margin-top:8px;">
+                    <strong>Replicator equation:</strong> ẋᵢ = xᵢ[fᵢ(x) − f̄(x)] — population share of strategy i grows when its fitness exceeds the mean. Spatial structure enables cooperation to persist above the classical prediction.
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:14px;">
+                <div class="card-title">Payoff Matrix — Prisoner's Dilemma</div>
+                <div class="matrix-wrap">
+                    <table class="payoff-matrix">
+                        <thead>
+                            <tr><th></th><th>C (cooperate)</th><th>D (defect)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:var(--muted);font-weight:600;">C</td>
+                                <td class="cell-cc" id="cc-cell">R, R = (3,3)</td>
+                                <td class="cell-cd" id="cd-cell">S, T = (0,5)</td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--muted);font-weight:600;">D</td>
+                                <td class="cell-dc" id="dc-cell">T, S = (5,0)</td>
+                                <td class="cell-dd" id="dd-cell">P, P = (1,1)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="math-block" style="margin-top:10px;">
+                    <span class="highlight">Constraint:</span> <span class="eq">T > R > P > S</span> &amp; <span class="eq">2R > T+S</span><br>
+                    <span class="highlight">Nash eq. (pure):</span> <span class="eq">(D,D)</span> — Pareto dominated by <span class="eq">(C,C)</span><br>
+                    <span class="highlight">Social optimum:</span> <span class="eq">mutual cooperation → 2R</span><br>
+                    <span class="highlight">Price of Anarchy:</span> <span id="poa-val" class="eq">2.00</span>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="card-title">Nash / ESS Equilibrium Analysis</div>
+                    <div class="eq-row">
+                        <div class="eq-label">Pure NE</div>
+                        <div class="eq-val">(Defect, Defect) — unique pure-strategy Nash eq. Both agents have no incentive to deviate unilaterally.</div>
+                    </div>
+                    <div class="eq-row">
+                        <div class="eq-label">ESS</div>
+                        <div class="eq-val" id="ess-text">AllDefect is ESS in well-mixed pop. Spatial structure breaks this — cooperators form clusters, raising local fitness above global mean.</div>
+                    </div>
+                    <div class="eq-row">
+                        <div class="eq-label">Mixed NE</div>
+                        <div class="eq-val" id="mixed-ne">p*(C) = (P−S)/[(T−R)+(P−S)] = <span style="color:var(--accent)" id="mixed-ne-val">0.25</span></div>
+                    </div>
+                    <div class="eq-row">
+                        <div class="eq-label">Tit-for-Tat</div>
+                        <div class="eq-val">Axelrod's tournament winner. Cooperative, retaliatory, forgiving. Promotes reciprocal altruism — invades and stabilises cooperation in iterated settings.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div>
+            <div class="card">
+                <div class="card-title">Simulation</div>
+                <div class="btn-row">
+                    <button class="btn active" id="btn-run">▶ Run</button>
+                    <button class="btn" id="btn-step">Step</button>
+                    <button class="btn danger" id="btn-reset">Reset</button>
+                </div>
+
+                <hr class="divider">
+                <div class="card-title" style="margin-top:0">Game Parameters</div>
+
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Temptation T</span><span id="val-T">5.0</span></div>
+                    <input type="range" id="sl-T" min="1.01" max="9" step="0.01" value="5">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Reward R</span><span id="val-R">3.0</span></div>
+                    <input type="range" id="sl-R" min="1.01" max="8" step="0.01" value="3">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Punishment P</span><span id="val-P">1.0</span></div>
+                    <input type="range" id="sl-P" min="0" max="4" step="0.01" value="1">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Sucker's Payoff S</span><span id="val-S">0.0</span></div>
+                    <input type="range" id="sl-S" min="-3" max="1" step="0.01" value="0">
+                </div>
+
+                <hr class="divider">
+                <div class="card-title" style="margin-top:0">Evolution Parameters</div>
+
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Selection pressure (β)</span><span id="val-beta">2.0</span></div>
+                    <input type="range" id="sl-beta" min="0.1" max="10" step="0.1" value="2">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Mutation rate (μ)</span><span id="val-mu">0.01</span></div>
+                    <input type="range" id="sl-mu" min="0" max="0.2" step="0.005" value="0.01">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Memory length</span><span id="val-mem">3</span></div>
+                    <input type="range" id="sl-mem" min="1" max="8" step="1" value="3">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Noise (trembling hand)</span><span id="val-noise">0.02</span></div>
+                    <input type="range" id="sl-noise" min="0" max="0.15" step="0.005" value="0.02">
+                </div>
+
+                <hr class="divider">
+                <div class="card-title" style="margin-top:0">Population</div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Grid size</span><span id="val-grid">40×40</span></div>
+                    <input type="range" id="sl-grid" min="10" max="60" step="5" value="40">
+                </div>
+                <div class="ctrl-section">
+                    <div class="ctrl-label"><span>Neighbourhood</span></div>
+                    <select id="sel-neigh">
+                        <option value="moore">Moore (8 neighbours)</option>
+                        <option value="von_neumann">Von Neumann (4)</option>
+                        <option value="hex">Hex lattice (6)</option>
+                    </select>
+                </div>
+                <div class="ctrl-section" style="margin-top:8px;">
+                    <div class="ctrl-label"><span>Init. distribution</span></div>
+                    <select id="sel-init">
+                        <option value="random">Random uniform</option>
+                        <option value="clusters">Clustered</option>
+                        <option value="coop_invasion">Coop. invasion</option>
+                        <option value="defect_invasion">Defect invasion</option>
+                    </select>
+                </div>
+                <div class="ctrl-section" style="margin-top:8px;">
+                    <div class="ctrl-label"><span>Active strategies</span></div>
+                    <select id="sel-strategies" multiple style="height:80px;">
+                        <option value="0" selected>Cooperate (AllC)</option>
+                        <option value="1" selected>Defect (AllD)</option>
+                        <option value="2" selected>Tit-for-Tat</option>
+                        <option value="3" selected>Pavlov (Win-Stay)</option>
+                        <option value="4">Random</option>
+                    </select>
+                </div>
+
+                <hr class="divider">
+                <div class="card-title" style="margin-top:0">Legend</div>
+                <div class="strategy-key">
+                    <div class="key-row"><div class="key-dot" style="background:var(--coop);"></div>AllC — Always Cooperate</div>
+                    <div class="key-row"><div class="key-dot" style="background:var(--defect);"></div>AllD — Always Defect</div>
+                    <div class="key-row"><div class="key-dot" style="background:var(--tft);"></div>Tit-for-Tat</div>
+                    <div class="key-row"><div class="key-dot" style="background:var(--accent3);"></div>Pavlov / Win-Stay-Lose-Shift</div>
+                    <div class="key-row"><div class="key-dot" style="background:var(--rand);"></div>Random</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:14px;">
+                <div class="card-title">Population Shares</div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-name">AllC</div><div class="stat-val coop" id="st-allc">—</div></div>
+                    <div class="stat-box"><div class="stat-name">AllD</div><div class="stat-val def" id="st-alld">—</div></div>
+                    <div class="stat-box"><div class="stat-name">TfT</div><div class="stat-val score" id="st-tft">—</div></div>
+                    <div class="stat-box"><div class="stat-name">Pavlov</div><div class="stat-val gen" id="st-pav">—</div></div>
+                </div>
+                <div class="stat-box" style="margin-top:8px;">
+                    <div class="stat-name">Mean Social Welfare</div>
+                    <div class="stat-val score" id="st-welfare">—</div>
+                </div>
+                <div class="stat-box" style="margin-top:6px;">
+                    <div class="stat-name">Cooperation Rate</div>
+                    <div class="stat-val coop" id="st-coop-rate">—</div>
+                </div>
+                <div class="stat-box" style="margin-top:6px;">
+                    <div class="stat-name">Generation</div>
+                    <div class="stat-val gen" id="st-gen">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="insight-bar">
+    <div class="insight-item"><div class="insight-dot" style="background:var(--accent)"></div><span class="insight-label">Dominant:</span><span class="insight-val" id="ins-dom">—</span></div>
+    <div class="insight-item"><div class="insight-dot" style="background:var(--tft)"></div><span class="insight-label">Welfare:</span><span class="insight-val" id="ins-welfare">—</span></div>
+    <div class="insight-item"><div class="insight-dot" style="background:var(--accent3)"></div><span class="insight-label">∂ Coop/gen:</span><span class="insight-val" id="ins-delta">—</span></div>
+    <div class="insight-item"><div class="insight-dot" style="background:var(--defect)"></div><span class="insight-label">Eq. type:</span><span class="insight-val" id="ins-eq">—</span></div>
+</div>
+
+<script>
+// ─── CONSTANTS & STATE ───────────────────────────────────────────────────────
+const STRAT = { ALLC:0, ALLD:1, TFT:2, PAVLOV:3, RAND:4 };
+const COLORS = ['#00ffcc','#ff4d6d','#fbbf24','#a78bfa','#60a5fa'];
+const NAMES = ['AllC','AllD','TfT','Pavlov','Rand'];
+
+let gridSize = 40;
+let T=5, R=3, P=1, S=0;
+let beta=2, mu=0.01, memLen=3, noise=0.02;
+let neighbourhood = 'moore';
+let initMode = 'random';
+let activeStrategies = [0,1,2,3];
+
+let grid = [], fitness = [], memory = [];
+let running = false;
+let generation = 0;
+let animId = null;
+let lastTime = 0;
+const SIM_SPEED = 80; // ms per generation
+
+// EVO CHART
+const MAX_HIST = 120;
+let history = { allc:[], alld:[], tft:[], pavlov:[], welfare:[] };
+
+// ─── DOM ─────────────────────────────────────────────────────────────────────
+const gridCanvas = document.getElementById('grid-canvas');
+const gctx = gridCanvas.getContext('2d');
+const evoCanvas = document.getElementById('evo-canvas');
+const ectx = evoCanvas.getContext('2d');
+
+function resizeCanvas() {
+    const w = gridCanvas.parentElement.clientWidth - 28;
+    gridCanvas.width = w;
+    gridCanvas.height = w;
+    evoCanvas.width = evoCanvas.parentElement.clientWidth - 28;
+    evoCanvas.height = 130;
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); drawGrid(); drawEvo(); });
+
+// ─── GRID INIT ────────────────────────────────────────────────────────────────
+function initGrid() {
+    generation = 0;
+    history = { allc:[], alld:[], tft:[], pavlov:[], welfare:[] };
+    grid = [];
+    fitness = [];
+    memory = [];
+    const strats = activeStrategies.length > 0 ? activeStrategies : [0,1,2,3];
+    for (let i=0; i<gridSize; i++) {
+        grid[i] = []; fitness[i] = []; memory[i] = [];
+        for (let j=0; j<gridSize; j++) {
+            if (initMode === 'random') {
+                grid[i][j] = strats[Math.floor(Math.random()*strats.length)];
+            } else if (initMode === 'clusters') {
+                const cx = Math.floor(Math.random()*gridSize);
+                const cy = Math.floor(Math.random()*gridSize);
+                const dx = Math.min(Math.abs(i-cx), gridSize-Math.abs(i-cx));
+                const dy = Math.min(Math.abs(j-cy), gridSize-Math.abs(j-cy));
+                grid[i][j] = (dx+dy < gridSize/5) ? strats[0] : strats[Math.min(1,strats.length-1)];
+            } else if (initMode === 'coop_invasion') {
+                const cx = gridSize/2, cy = gridSize/2;
+                const dx = i-cx, dy = j-cy;
+                grid[i][j] = (Math.sqrt(dx*dx+dy*dy) < gridSize*0.15) ? STRAT.ALLC : STRAT.ALLD;
+            } else if (initMode === 'defect_invasion') {
+                const cx = gridSize/2, cy = gridSize/2;
+                const dx = i-cx, dy = j-cy;
+                grid[i][j] = (Math.sqrt(dx*dx+dy*dy) < gridSize*0.15) ? STRAT.ALLD : STRAT.ALLC;
+            }
+            fitness[i][j] = 0;
+            memory[i][j] = Array(memLen).fill(1); // history of opponent's moves: 1=C, 0=D
+        }
+    }
+    updateStats();
+    drawGrid();
+    drawEvo();
+}
+
+// ─── NEIGHBOURS ──────────────────────────────────────────────────────────────
+function getNeighbours(i, j) {
+    const n = gridSize;
+    const nbrs = [];
+    if (neighbourhood === 'moore') {
+        for (let di=-1;di<=1;di++) for (let dj=-1;dj<=1;dj++) {
+            if (di===0&&dj===0) continue;
+            nbrs.push([(i+di+n)%n, (j+dj+n)%n]);
+        }
+    } else if (neighbourhood === 'von_neumann') {
+        [[-1,0],[1,0],[0,-1],[0,1]].forEach(([di,dj])=>nbrs.push([(i+di+n)%n,(j+dj+n)%n]));
+    } else { // hex
+        const even = j%2===0;
+        const offsets = even ? [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1]] : [[-1,0],[1,0],[0,-1],[0,1],[1,-1],[1,1]];
+        offsets.forEach(([di,dj])=>nbrs.push([(i+di+n)%n,(j+dj+n)%n]));
+    }
+    return nbrs;
+}
+
+// ─── PAYOFF ───────────────────────────────────────────────────────────────────
+function getMove(myStrat, oppHistory) {
+    // oppHistory: array of opponent's past moves (1=C, 0=D), most recent last
+    if (Math.random() < noise) return Math.random()<0.5?1:0; // trembling hand
+    switch(myStrat) {
+        case STRAT.ALLC: return 1;
+        case STRAT.ALLD: return 0;
+        case STRAT.TFT: return oppHistory[oppHistory.length-1] ?? 1; // copy last move
+        case STRAT.PAVLOV: {
+            // Win-stay: if last round was good (CC or DC), repeat; else switch
+            const lastMyMove = oppHistory[oppHistory.length-1] ?? 1; // approximation
+            const lastOppMove = oppHistory[oppHistory.length-2] ?? 1;
+            // won if (myMove=C and opp=C) or (myMove=D and opp=D)... simplified
+            return (lastMyMove === lastOppMove) ? 1 : 0;
+        }
+        case STRAT.RAND: return Math.random()<0.5?1:0;
+        default: return 1;
+    }
+}
+
+function payoff(myMove, oppMove) {
+    if (myMove===1 && oppMove===1) return R;
+    if (myMove===1 && oppMove===0) return S;
+    if (myMove===0 && oppMove===1) return T;
+    return P;
+}
+
+// ─── STEP ────────────────────────────────────────────────────────────────────
+function step() {
+    const n = gridSize;
+    const newFitness = Array.from({length:n},()=>new Array(n).fill(0));
+
+    // Compute fitness via local games
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) {
+        let f = 0;
+        const nbrs = getNeighbours(i,j);
+        for (const [ni,nj] of nbrs) {
+            const myMove = getMove(grid[i][j], memory[i][j]);
+            const oppMove = getMove(grid[ni][nj], memory[ni][nj]);
+            // Update memory
+            memory[i][j].push(oppMove);
+            if (memory[i][j].length > memLen) memory[i][j].shift();
+            f += payoff(myMove, oppMove);
+        }
+        newFitness[i][j] = f / Math.max(1, nbrs.length);
+    }
+
+    // Strategy update: Fermi imitation rule
+    const newGrid = grid.map(row=>[...row]);
+    const strats = activeStrategies.length > 0 ? activeStrategies : [0,1,2,3];
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) {
+        // Mutation
+        if (Math.random() < mu) {
+            newGrid[i][j] = strats[Math.floor(Math.random()*strats.length)];
+            continue;
+        }
+        // Pick random neighbour
+        const nbrs = getNeighbours(i,j);
+        if (nbrs.length === 0) continue;
+        const [ni,nj] = nbrs[Math.floor(Math.random()*nbrs.length)];
+        // Fermi rule: imitate with probability 1/(1+exp(-β(f_j - f_i)))
+        const df = newFitness[ni][nj] - newFitness[i][j];
+        const prob = 1 / (1 + Math.exp(-beta * df));
+        if (Math.random() < prob) newGrid[i][j] = grid[ni][nj];
+    }
+
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) {
+        grid[i][j] = newGrid[i][j];
+        fitness[i][j] = newFitness[i][j];
+    }
+    generation++;
+    updateStats();
+    drawGrid();
+    drawEvo();
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+let prevCoopRate = 0;
+function updateStats() {
+    const n = gridSize;
+    const counts = [0,0,0,0,0];
+    let totalFit = 0, coopMoves = 0, totalMoves = 0;
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) {
+        counts[grid[i][j]]++;
+        totalFit += fitness[i][j];
+        const mv = getMove(grid[i][j], memory[i][j]);
+        coopMoves += mv; totalMoves++;
+    }
+    const total = n*n;
+    const welfare = totalFit / total;
+    const coopRate = coopMoves / totalMoves;
+
+    // History
+    history.allc.push(counts[0]/total);
+    history.alld.push(counts[1]/total);
+    history.tft.push(counts[2]/total);
+    history.pavlov.push(counts[3]/total);
+    history.welfare.push(welfare / (T||5));
+    if (history.allc.length > MAX_HIST) {
+        ['allc','alld','tft','pavlov','welfare'].forEach(k=>history[k].shift());
+    }
+
+    // Update DOM
+    document.getElementById('st-allc').textContent = (counts[0]/total*100).toFixed(1)+'%';
+    document.getElementById('st-alld').textContent = (counts[1]/total*100).toFixed(1)+'%';
+    document.getElementById('st-tft').textContent = (counts[2]/total*100).toFixed(1)+'%';
+    document.getElementById('st-pav').textContent = (counts[3]/total*100).toFixed(1)+'%';
+    document.getElementById('st-welfare').textContent = welfare.toFixed(3);
+    document.getElementById('st-coop-rate').textContent = (coopRate*100).toFixed(1)+'%';
+    document.getElementById('st-gen').textContent = generation;
+
+    // Insight bar
+    let domIdx = counts.indexOf(Math.max(...counts));
+    document.getElementById('ins-dom').textContent = NAMES[domIdx];
+    document.getElementById('ins-welfare').textContent = welfare.toFixed(2);
+    const delta = coopRate - prevCoopRate;
+    document.getElementById('ins-delta').textContent = (delta>=0?'+':'')+delta.toFixed(3);
+    prevCoopRate = coopRate;
+
+    // ESS badge
+    const badge = document.getElementById('ess-badge');
+    const alldFrac = counts[1]/total;
+    if (alldFrac > 0.7) { badge.textContent='AllD ESS'; badge.className='badge unstable'; document.getElementById('ins-eq').textContent='AllD ESS'; }
+    else if (alldFrac < 0.15 && counts[0]/total > 0.5) { badge.textContent='COOP ESS'; badge.className='badge ess'; document.getElementById('ins-eq').textContent='Coop. ESS'; }
+    else { badge.textContent='MIXED EQ.'; badge.className='badge mixed'; document.getElementById('ins-eq').textContent='Mixed'; }
+
+    // Payoff matrix display
+    document.getElementById('cc-cell').textContent = `R,R = (${R},${R})`;
+    document.getElementById('cd-cell').textContent = `S,T = (${S},${T})`;
+    document.getElementById('dc-cell').textContent = `T,S = (${T},${S})`;
+    document.getElementById('dd-cell').textContent = `P,P = (${P},${P})`;
+
+    // Price of anarchy
+    const poa = (2*R) / (T+S||1);
+    document.getElementById('poa-val').textContent = isFinite(poa)&&poa>0 ? poa.toFixed(2) : '∞';
+
+    // Mixed NE: p* = (P-S)/[(T-R)+(P-S)]
+    const denom = (T-R)+(P-S);
+    const pstar = denom !== 0 ? Math.max(0,Math.min(1,(P-S)/denom)) : 0.5;
+    document.getElementById('mixed-ne-val').textContent = pstar.toFixed(3);
+}
+
+// ─── DRAW GRID ────────────────────────────────────────────────────────────────
+function drawGrid() {
+    const n = gridSize;
+    const sz = gridCanvas.width / n;
+    gctx.clearRect(0,0,gridCanvas.width,gridCanvas.height);
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) {
+        const s = grid[i][j];
+        gctx.fillStyle = COLORS[s] || '#333';
+        // Slightly dim by fitness variance for visual depth
+        const f = fitness[i][j];
+        const alpha = Math.min(1, 0.5 + f * 0.08);
+        gctx.globalAlpha = alpha;
+        gctx.fillRect(j*sz, i*sz, sz-0.5, sz-0.5);
+    }
+    gctx.globalAlpha = 1;
+}
+
+// ─── DRAW EVO CHART ──────────────────────────────────────────────────────────
+function drawEvo() {
+    const w = evoCanvas.width, h = evoCanvas.height;
+    ectx.clearRect(0,0,w,h);
+
+    // Grid lines
+    ectx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ectx.lineWidth = 1;
+    for (let yi=0;yi<=4;yi++) {
+        const y = h * yi/4;
+        ectx.beginPath(); ectx.moveTo(0,y); ectx.lineTo(w,y); ectx.stroke();
+    }
+
+    const keys = ['allc','alld','tft','pavlov'];
+    const colors = [COLORS[0],COLORS[1],COLORS[2],COLORS[3]];
+    const hists = [history.allc, history.alld, history.tft, history.pavlov];
+    const hl = history.allc.length;
+    if (hl < 2) return;
+
+    keys.forEach((k,ki)=>{
+        const data = hists[ki];
+        ectx.beginPath();
+        ectx.strokeStyle = colors[ki];
+        ectx.lineWidth = 1.5;
+        ectx.globalAlpha = 0.85;
+        for (let t=0;t<data.length;t++) {
+            const x = (t/(MAX_HIST-1))*w;
+            const y = h - data[t]*h;
+            t===0 ? ectx.moveTo(x,y) : ectx.lineTo(x,y);
+        }
+        ectx.stroke();
+    });
+
+    // Welfare overlay
+    ectx.beginPath();
+    ectx.strokeStyle = 'rgba(251,191,36,0.4)';
+    ectx.lineWidth = 1;
+    ectx.setLineDash([4,3]);
+    for (let t=0;t<history.welfare.length;t++) {
+        const x = (t/(MAX_HIST-1))*w;
+        const y = h - Math.min(1,history.welfare[t])*h;
+        t===0 ? ectx.moveTo(x,y) : ectx.lineTo(x,y);
+    }
+    ectx.stroke();
+    ectx.setLineDash([]);
+    ectx.globalAlpha = 1;
+
+    // Labels at end
+    const last = hl-1;
+    const labelData = [
+        {d:history.allc, c:COLORS[0], n:'AllC'},
+        {d:history.alld, c:COLORS[1], n:'AllD'},
+        {d:history.tft, c:COLORS[2], n:'TfT'},
+        {d:history.pavlov, c:COLORS[3], n:'Pav'},
+    ];
+    ectx.font = '500 9px JetBrains Mono, monospace';
+    labelData.forEach(({d,c,n})=>{
+        if(d.length<2)return;
+        const x = (last/(MAX_HIST-1))*w - 28;
+        const y = h - d[last]*h - 3;
+        ectx.fillStyle = c;
+        ectx.fillText(n, Math.min(x,w-30), Math.max(8,Math.min(h-4,y)));
+    });
+}
+
+// ─── ANIMATION LOOP ──────────────────────────────────────────────────────────
+function loop(ts) {
+    if (!running) return;
+    if (ts - lastTime > SIM_SPEED) {
+        step();
+        lastTime = ts;
+    }
+    animId = requestAnimationFrame(loop);
+}
+
+function startSim() {
+    running = true;
+    document.getElementById('btn-run').textContent = '⏸ Pause';
+    document.getElementById('btn-run').classList.add('active');
+    animId = requestAnimationFrame(loop);
+}
+function pauseSim() {
+    running = false;
+    document.getElementById('btn-run').textContent = '▶ Run';
+    document.getElementById('btn-run').classList.remove('active');
+    cancelAnimationFrame(animId);
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+document.getElementById('btn-run').addEventListener('click', ()=>{
+    running ? pauseSim() : startSim();
+});
+document.getElementById('btn-step').addEventListener('click', ()=>{ pauseSim(); step(); });
+document.getElementById('btn-reset').addEventListener('click', ()=>{ pauseSim(); initGrid(); });
+
+function wireSlider(id, valId, setter, fmt) {
+    const sl = document.getElementById(id);
+    sl.addEventListener('input', ()=>{
+        const v = parseFloat(sl.value);
+        setter(v);
+        document.getElementById(valId).textContent = fmt ? fmt(v) : v.toFixed(2);
+    });
+}
+wireSlider('sl-T','val-T', v=>{T=v;}, v=>v.toFixed(1));
+wireSlider('sl-R','val-R', v=>{R=v;}, v=>v.toFixed(1));
+wireSlider('sl-P','val-P', v=>{P=v;}, v=>v.toFixed(1));
+wireSlider('sl-S','val-S', v=>{S=v;}, v=>v.toFixed(1));
+wireSlider('sl-beta','val-beta', v=>{beta=v;}, v=>v.toFixed(1));
+wireSlider('sl-mu','val-mu', v=>{mu=v;}, v=>v.toFixed(3));
+wireSlider('sl-mem','val-mem', v=>{memLen=parseInt(v);}, v=>parseInt(v));
+wireSlider('sl-noise','val-noise', v=>{noise=v;}, v=>v.toFixed(3));
+wireSlider('sl-grid','val-grid', v=>{
+    gridSize=parseInt(v);
+    document.getElementById('val-grid').textContent=`${gridSize}×${gridSize}`;
+    pauseSim(); initGrid();
+}, v=>`${parseInt(v)}×${parseInt(v)}`);
+
+document.getElementById('sel-neigh').addEventListener('change', e=>{neighbourhood=e.target.value;});
+document.getElementById('sel-init').addEventListener('change', e=>{initMode=e.target.value; pauseSim(); initGrid();});
+document.getElementById('sel-strategies').addEventListener('change', e=>{
+    activeStrategies = Array.from(e.target.selectedOptions).map(o=>parseInt(o.value));
+    pauseSim(); initGrid();
+});
+
+// Click on grid to plant strategy
+let paintStrategy = 0;
+gridCanvas.addEventListener('pointerdown', e=>{
+    const rect = gridCanvas.getBoundingClientRect();
+    const px = (e.clientX-rect.left)*(gridCanvas.width/rect.width);
+    const py = (e.clientY-rect.top)*(gridCanvas.height/rect.height);
+    const sz = gridCanvas.width/gridSize;
+    const j = Math.floor(px/sz), i = Math.floor(py/sz);
+    if(i>=0&&i<gridSize&&j>=0&&j<gridSize){
+        paintStrategy = (paintStrategy+1)%5;
+        // paint 3x3 cluster
+        for(let di=-2;di<=2;di++) for(let dj=-2;dj<=2;dj++){
+            const ni=(i+di+gridSize)%gridSize, nj=(j+dj+gridSize)%gridSize;
+            grid[ni][nj]=paintStrategy;
+        }
+        drawGrid();
+    }
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+initGrid();
+startSim();
+</script>
+</body>
+</html>
