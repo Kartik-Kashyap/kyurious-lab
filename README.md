@@ -60,6 +60,6 @@ These simulators are tested on humans. Some may cause side effects such as:
 
 ## The Lab Lead
 
-**Kartik Kashyap** *Creative Technologist | System Architect | Professional Overthinker* [LinkedIn](https://www.linkedin.com/in/kartik-kashyap-vl/) | [Instagram @kyurious.kartik](https://instagram.com/kyurious.kartik)
+**Kartik Kashyap** *Creative Technologist | System Architect | Professional Overthinker* [LinkedIn](https://www.linkedin.com/in/kartik-kashyap-vl/) | [Instagram @kyurious.kids](https://instagram.com/kyurious.kids)
 
 *"Stay Kyurious. The universe is just a very complex `for` loop."*
